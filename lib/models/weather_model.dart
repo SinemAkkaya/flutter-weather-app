@@ -24,4 +24,4 @@ class WeatherModel {
       iconCode: json['weather'][0]['icon'],
     );
   }
-}
+} 
