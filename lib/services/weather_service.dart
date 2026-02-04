@@ -6,10 +6,14 @@ class WeatherService {
   final String apiKey = 'e1fc4b463fd8b528f099a3c2f5307a1a';
   
   final String baseUrl = 'https://api.openweathermap.org/data/2.5/weather';
-
+//1. Future: gelcekte bir fonksiyon gelecek diyor
+// 2. async:bu fonksiyonun içine beklemeli işler var diyor
   Future<WeatherModel> getWeather(String cityName) async { // Şehir Adını Al (cityName)
     
     final url = Uri.parse('$baseUrl?q=$cityName&appid=$apiKey&units=metric');
+//3. await:
+// Kod burada durup internetten cevap gelmesini bekliyor.
+  // Eğer 'await' yazmazsam kod cevap gelmesini beklemeden alt satıra geçerve null hatası alırım
 
     final response = await http.get(url);
 
