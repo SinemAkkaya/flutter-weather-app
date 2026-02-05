@@ -1,7 +1,8 @@
 import 'dart:convert'; // Gelen veriyi (JSON) çözmek için lazım olan kütüphane
 import 'package:http/http.dart' as http; // İnternetle konuşmak için lazım
 import 'package:geolocator/geolocator.dart'; // GPS paketi
-import '../models/weather_model.dart'; // Dün hazırladığım veri kalıbı
+import '../models/weather_model.dart';
+import '../models/forecast_model.dart'; // Hava durumu modelimi içe akrardım
 
 class WeatherService {
   final String apiKey = 'e1fc4b463fd8b528f099a3c2f5307a1a';
@@ -59,6 +60,34 @@ class WeatherService {
       return WeatherModel.fromJson(data);
     } else {
       throw Exception('Hata kodu: ${response.statusCode}');
+    }
+  }
+
+  // --- yeni fonksiyonum  ---
+  Future<List<ForecastModel>> getForecast(String cityName) async {
+    // Dikkat: Adres artık 'weather' değil 'forecast'
+    final url = Uri.parse(
+      'https://api.openweathermap.org/data/2.5/forecast?q=$cityName&appid=$apiKey&units=metric',
+    );
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      // JSON'un içinde "list" diye bir dizi var onu ham haliyle al demek
+      final List<dynamic> rawList = data['list'];
+
+      //sadece saat 12de gelen veriyi seçiyorum bir sürü geldiği için, çünkü her 3 saatte bir veri geliyor
+      final filteredList = rawList.where((item) {
+        final dateText = item['dt_txt'] as String;
+        return dateText.contains('12:00:00');
+      }).toList();
+
+      // artık elimde sadece 5 tane veri var
+      return filteredList.map((item) => ForecastModel.fromJson(item)).toList();
+    } else {
+      throw Exception('Tahmin verisi gelmedi: ${response.statusCode}');
     }
   }
 }

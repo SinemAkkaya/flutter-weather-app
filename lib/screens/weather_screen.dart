@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
 
+import '../models/forecast_model.dart';
+
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
 
@@ -16,6 +18,9 @@ class _WeatherScreenState extends State<WeatherScreen> {
   //veriyi tutacak değişken
   late Future<WeatherModel> _weatherFuture;
 
+  //yeni ekledim tahmin verisi için
+  late Future<List<ForecastModel>> _forecastFuture;
+
   //yeni ekledim arama çubuğu koymak için
   final TextEditingController _controller = TextEditingController();
 
@@ -26,6 +31,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
     if (cityName.isNotEmpty) {
       setState(() {
         _weatherFuture = _weatherService.getWeather(cityName);
+        _forecastFuture = _weatherService.getForecast(cityName);
+
         _isSearching = false; // arama kapansın
       });
       _controller.clear(); // kutuyu temizle
@@ -37,6 +44,9 @@ class _WeatherScreenState extends State<WeatherScreen> {
     super.initState();
     // gps fonksiyonunu çağırıyorum
     _weatherFuture = _weatherService.getWeatherByLocation();
+    _forecastFuture = Future.value(
+      [],
+    ); //başlangıçta boş liste hata almamak için
   }
 
   @override
@@ -92,113 +102,188 @@ class _WeatherScreenState extends State<WeatherScreen> {
       ),
 
       body: Center(
-        // FutureBuilder: async yani beklemeli bir iş olacağı için bunu kullanmalıyım yoksa veri gelene kadar uygulama çökmüş gibi olur
-        child: FutureBuilder<WeatherModel>(
-          future: _weatherFuture,
-          builder: (context, snapshot) {
-            //hala yükleniyor mu?
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator(color: Colors.white);
-            }
+        // listeyi ekleyince ekran boyunu aştı kaydırma özelliği eklenmesi gerek
+        child: SingleChildScrollView(
+          child: FutureBuilder<WeatherModel>(
+            future: _weatherFuture,
+            builder: (context, snapshot) {
+              //hala yükleniyor mu?
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator(color: Colors.white);
+              }
 
-            //hata var mı?
-            if (snapshot.hasError) {
-              return Text(
-                "Hata: ${snapshot.error}",
-                style: const TextStyle(color: Colors.white),
-              );
-            }
+              //hata var mı?
+              if (snapshot.hasError) {
+                return Text(
+                  "Hata: ${snapshot.error}",
+                  style: const TextStyle(color: Colors.white),
+                );
+              }
 
-            //veri geldi mi?
-            if (snapshot.hasData) {
-              final weather = snapshot.data!;
+              //veri geldi mi?
+              if (snapshot.hasData) {
+                final weather = snapshot.data!;
 
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.network(weather.iconUrl, width: 100, height: 100),
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.network(weather.iconUrl, width: 100, height: 100),
 
-                  // şehir İsmi
-                  Text(
-                    weather.cityName,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 10), //boşluk bıraktık
-                  // sıcaklık
-                  Text(
-                    "${weather.temperature.round()}°", // .round() ile küsüratı kaldırılıyor
-                    style: const TextStyle(
-                      fontSize: 80,
-                      fontWeight: FontWeight.w200,
-                      color: Colors.white,
-                    ),
-                  ),
-
-                  //durum acıklaması
-                  Text(
-                    weather.description.toUpperCase(),
-                    style: const TextStyle(fontSize: 20, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 30),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment
-                        .spaceEvenly, // spaceEvenly adından anlaşıldığı gibi eşit aralıklı olsun demek
-                    children: [
-                      // nem
-                      Column(
-                        children: [
-                          const Icon(
-                            Icons.water_drop,
-                            color: Colors.blue,
-                            size: 30,
-                          ),
-                          const SizedBox(height: 5),
-                          const Text(
-                            "Humidity",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          Text(
-                            "%${weather.humidity}",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ],
+                    // şehir İsmi
+                    Text(
+                      weather.cityName,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-
-                      // Rüzgar
-                      Column(
-                        children: [
-                          const Icon(Icons.air, color: Colors.white, size: 30),
-                          const SizedBox(height: 5),
-                          const Text(
-                            "Wind Speed",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          Text(
-                            "${weather.windSpeed} km/h",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ],
+                    ),
+                    const SizedBox(height: 10), //boşluk bıraktık
+                    // sıcaklık
+                    Text(
+                      "${weather.temperature.round()}°", // .round() ile küsüratı kaldırılıyor
+                      style: const TextStyle(
+                        fontSize: 80,
+                        fontWeight: FontWeight.w200,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
-                ],
-              );
-            }
+                    ),
 
-            //hiçbiri yoksa boş döndürsün
-            return const Text("Veri yok");
-          },
+                    //durum acıklaması
+                    Text(
+                      weather.description.toUpperCase(),
+                      style: const TextStyle(fontSize: 20, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 30),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment
+                          .spaceEvenly, // spaceEvenly adından anlaşıldığı gibi eşit aralıklı olsun demek
+                      children: [
+                        // nem
+                        Column(
+                          children: [
+                            const Icon(
+                              Icons.water_drop,
+                              color: Colors.blue,
+                              size: 30,
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              "Humidity",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            Text(
+                              "%${weather.humidity}",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Rüzgar
+                        Column(
+                          children: [
+                            const Icon(
+                              Icons.air,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              "Wind Speed",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            Text(
+                              "${weather.windSpeed} km/h",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    // --- 5 günlük tahmin ---
+                    const SizedBox(height: 40), //araya biraz boşluk
+                    const Text(
+                      "5-Day Forecast",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // İkinci FutureBuilder
+                    FutureBuilder<List<ForecastModel>>(
+                      future: _forecastFuture,
+                      builder: (context, snapshotForecast) {
+                        if (snapshotForecast.hasData) {
+                          final forecastList = snapshotForecast.data!;
+
+                          // eğer liste boş sa hiçbir şey gösterme
+                          if (forecastList.isEmpty) return const SizedBox();
+
+                          // listeyi göstermek için Container içine ListView koyuyorum
+                          return Container(
+                            height: 400, // listenin kaplayacağı yükseklik
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: ListView.builder(
+                              physics:
+                                  const NeverScrollableScrollPhysics(), // kaydırmayı kapatıyorum çünkü dışarıda zaten kaydırma var
+                              shrinkWrap: true,
+                              itemCount: forecastList.length,
+                              itemBuilder: (context, index) {
+                                final item = forecastList[index];
+                                return Card(
+                                  color: Colors.white.withOpacity(
+                                    0.1,
+                                  ), // hafif şeffaf kart
+                                  child: ListTile(
+                                    leading: Image.network(
+                                      item.iconUrl,
+                                      width: 50,
+                                    ),
+                                    title: Text(
+                                      item.dayName, // Tarih yazısı uzun
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    trailing: Text(
+                                      "${item.temperature.round()}°",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }
+                        return const SizedBox(); // veri yoksa gösterme
+                      },
+                    ),
+
+                    // --- 5 günlük tahmin bitti ---
+                  ],
+                );
+              }
+
+              //hiçbiri yoksa boş döndürsün
+              return const Text("Veri yok");
+            },
+          ),
         ),
       ),
     );
