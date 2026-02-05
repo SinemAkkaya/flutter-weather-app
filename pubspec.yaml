@@ -31,7 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.2.0              # API istekleri için
-  geolocator: ^13.0.0       # Konum almak için
+  geolocator: ^14.0.2       # Konum almak için
   shared_preferences: ^2.3.0 # Verileri saklamak için
 
   # The following adds the Cupertino Icons font to your application.

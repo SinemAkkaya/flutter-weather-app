@@ -19,8 +19,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
   @override
   void initState() {
     super.initState();
-    // ekran ilk açıldığında (viewDidLoad gibi) ankara'nın verisini iste
-    _weatherFuture = _weatherService.getWeather('Ankara');
+    // gps fonksiyonunu çağırıyorum
+    _weatherFuture = _weatherService.getWeatherByLocation();
   }
 
   @override
@@ -54,11 +54,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.network(
-                    weather.getIconUrl(), 
-                    width: 100,      
-                    height: 100,     
-                  ),
+                  Image.network(weather.getIconUrl(), width: 100, height: 100),
                   // şehir İsmi
                   Text(
                     weather.cityName,
