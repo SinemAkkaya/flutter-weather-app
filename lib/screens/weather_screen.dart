@@ -241,6 +241,21 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               itemCount: forecastList.length,
                               itemBuilder: (context, index) {
                                 final item = forecastList[index];
+
+                                // tarihi düzeltme kısmı raw data yerine gelecek
+                                final date = DateTime.parse(item.dayName);
+                                final List<String> weekDays = [
+                                  "Mon",
+                                  "Tue",
+                                  "Wed",
+                                  "Thu",
+                                  "Fri",
+                                  "Sat",
+                                  "Sun",
+                                ];
+                                final String dayName =
+                                    weekDays[date.weekday - 1];
+
                                 return Card(
                                   color: Colors.white.withOpacity(
                                     0.1,
@@ -251,10 +266,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                       width: 50,
                                     ),
                                     title: Text(
-                                      item.dayName, // Tarih yazısı uzun
+                                      dayName, // item.dayName yerine dayName değişkenini koydum
                                       style: const TextStyle(
                                         color: Colors.white,
-                                        fontSize: 14,
+                                        fontSize:
+                                            18, // Biraz büyüttüm daha şık dursun diye
+                                        fontWeight:
+                                            FontWeight.bold, // Kalınlaştırdım
                                       ),
                                     ),
                                     trailing: Text(
