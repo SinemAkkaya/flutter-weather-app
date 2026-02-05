@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/weather_screen.dart'; //birazdan oluşturacağım 
+import 'screens/weather_screen.dart'; //birazdan oluşturacağım
 
 void main() {
   runApp(const MyApp());
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false, //debug yazısını kaldırır
       title: 'Weather App',
-      theme: ThemeData.dark(), 
+      theme: ThemeData.dark(),
       home: const WeatherScreen(), //açılış sayfam
     );
   }
