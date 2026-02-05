@@ -16,6 +16,22 @@ class _WeatherScreenState extends State<WeatherScreen> {
   //veriyi tutacak değişken
   late Future<WeatherModel> _weatherFuture;
 
+  //yeni ekledim arama çubuğu koymak için
+  final TextEditingController _controller = TextEditingController();
+
+  bool _isSearching = false;
+
+  void _searchCity() async {
+    final cityName = _controller.text;
+    if (cityName.isNotEmpty) {
+      setState(() {
+        _weatherFuture = _weatherService.getWeather(cityName);
+        _isSearching = false; // arama kapansın
+      });
+      _controller.clear(); // kutuyu temizle
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +44,53 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Scaffold(
       //apple stili koyu arka plan
       backgroundColor: Colors.black,
+
+      // --- app bar arama butonu  ---
+      appBar: AppBar(
+        backgroundColor: Colors.transparent, // arkaplan şeffaf
+        elevation: 0, // shadow yok
+        // Eğer _isSearching TRUE ise -> TextField (Yazı alanı) göster
+        // Eğer _isSearching FALSE ise -> Text (Başlık) göster
+        title: _isSearching
+            ? TextField(
+                controller: _controller,
+                style: const TextStyle(color: Colors.white), // Yazı rengi beyaz
+                decoration: const InputDecoration(
+                  hintText: "Enter City Name",
+                  hintStyle: TextStyle(color: Colors.grey),
+                  border: InputBorder.none, // Alt çizgiyi kaldırdım çirkindi
+                ),
+                autofocus: true, // Açıldığı gibi klavye gelsin
+                onSubmitted: (value) {
+                  _searchCity(); // Klavyeden git tuşuna basınca ara
+                },
+              )
+            : const Text("Weather App"), // Arama yoksa başlık kalsın
+
+        actions: [
+          IconButton(
+            // arama varsa 'X' kapat, yoksa büyüteç işareti ara demek
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: Colors.white,
+              size: 30,
+            ),
+            onPressed: () {
+              setState(() {
+                if (_isSearching) {
+                  // eğer arama açıksa ve basıldıysa -> kkapat ve temizle
+                  _isSearching = false;
+                  _controller.clear();
+                } else {
+                  // eğer kapalıysa ve basıldıysa -> arama modunu aç
+                  _isSearching = true;
+                }
+              });
+            },
+          ),
+        ],
+      ),
+
       body: Center(
         // FutureBuilder: async yani beklemeli bir iş olacağı için bunu kullanmalıyım yoksa veri gelene kadar uygulama çökmüş gibi olur
         child: FutureBuilder<WeatherModel>(
@@ -50,11 +113,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
             if (snapshot.hasData) {
               final weather = snapshot.data!;
 
-              // şimdilik basit tasarım
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.network(weather.getIconUrl(), width: 100, height: 100),
+                  Image.network(weather.iconUrl, width: 100, height: 100),
+
                   // şehir İsmi
                   Text(
                     weather.cityName,
@@ -96,7 +159,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           ),
                           const SizedBox(height: 5),
                           const Text(
-                            "Nem",
+                            "Humidity",
                             style: TextStyle(color: Colors.grey),
                           ),
                           Text(
@@ -115,7 +178,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           const Icon(Icons.air, color: Colors.white, size: 30),
                           const SizedBox(height: 5),
                           const Text(
-                            "Rüzgar",
+                            "Wind Speed",
                             style: TextStyle(color: Colors.grey),
                           ),
                           Text(

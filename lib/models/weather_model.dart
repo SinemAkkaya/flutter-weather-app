@@ -35,7 +35,8 @@ class WeatherModel {
               as int, //nem zaten hep tam sayıdır .toDouble yapmama gerek yok
     );
   }
-  String getIconUrl() {
+ String get iconUrl {
     return 'https://openweathermap.org/img/wn/$iconCode@4x.png';
   }
 }
+ 
