@@ -3,9 +3,10 @@ import 'package:http/http.dart' as http; // İnternetle konuşmak için lazım
 import 'package:geolocator/geolocator.dart'; // GPS paketi
 import '../models/weather_model.dart';
 import '../models/forecast_model.dart'; // Hava durumu modelimi içe akrardım
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env dosyasını kullanmak için
 
 class WeatherService {
-  final String apiKey = 'e1fc4b463fd8b528f099a3c2f5307a1a';
+  final String apiKey = dotenv.env['OPENWEATHER_API_KEY'] ?? '';
   final String baseUrl = 'https://api.openweathermap.org/data/2.5/weather';
 
   // --- FONKSİYON 1: Şehir İsmine Göre Getiren fonksiyonum ---
@@ -65,7 +66,6 @@ class WeatherService {
 
   // --- yeni fonksiyonum  ---
   Future<List<ForecastModel>> getForecast(String cityName) async {
-    // Dikkat: Adres artık 'weather' değil 'forecast'
     final url = Uri.parse(
       'https://api.openweathermap.org/data/2.5/forecast?q=$cityName&appid=$apiKey&units=metric',
     );
