@@ -210,83 +210,189 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
                     // --- 5 günlük tahmin ---
                     const SizedBox(height: 40), //araya biraz boşluk
-                    const Text(
-                      "5-Day Forecast",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
                     // İkinci FutureBuilder
                     FutureBuilder<List<ForecastModel>>(
                       future: _forecastFuture,
                       builder: (context, snapshotForecast) {
                         if (snapshotForecast.hasData) {
-                          final forecastList = snapshotForecast.data!;
+                          // fulllist adında yeni bir değişken oluşturdum ve snapshot içindeki veriyi ona atadım
+                          final fullList = snapshotForecast.data!;
 
                           // eğer liste boş sa hiçbir şey gösterme
-                          if (forecastList.isEmpty) return const SizedBox();
+                          if (fullList.isEmpty) return const SizedBox();
 
-                          // listeyi göstermek için Container içine ListView koyuyorum
-                          return Container(
-                            height: 400, // listenin kaplayacağı yükseklik
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: ListView.builder(
-                              physics:
-                                  const NeverScrollableScrollPhysics(), // kaydırmayı kapatıyorum çünkü dışarıda zaten kaydırma var
-                              shrinkWrap: true,
-                              itemCount: forecastList.length,
-                              itemBuilder: (context, index) {
-                                final item = forecastList[index];
+                          //hem yatay hem dikey listeyi alt alta göstermek için Column kullandım
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              //saatlik tahmin
 
-                                // tarihi düzeltme kısmı raw data yerine gelecek
-                                final date = DateTime.parse(item.dayName);
-                                final List<String> weekDays = [
-                                  "Mon",
-                                  "Tue",
-                                  "Wed",
-                                  "Thu",
-                                  "Fri",
-                                  "Sat",
-                                  "Sun",
-                                ];
-                                final String dayName =
-                                    weekDays[date.weekday - 1];
-
-                                return Card(
-                                  color: Colors.white.withOpacity(
-                                    0.1,
-                                  ), // hafif şeffaf kart
-                                  child: ListTile(
-                                    leading: Image.network(
-                                      item.iconUrl,
-                                      width: 50,
-                                    ),
-                                    title: Text(
-                                      dayName, // item.dayName yerine dayName değişkenini koydum
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize:
-                                            18, // Biraz büyüttüm daha şık dursun diye
-                                        fontWeight:
-                                            FontWeight.bold, // Kalınlaştırdım
-                                      ),
-                                    ),
-                                    trailing: Text(
-                                      "${item.temperature.round()}°",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                              // Hourly Forecast başlığı
+                              const Padding(
+                                padding: EdgeInsets.only(left: 20, bottom: 10),
+                                child: Text(
+                                  "Hourly Forecast",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                              ),
+
+                              // yatay liste için bir Containeraçtım ve yükseklik verdim
+                              //yükseklik vermezsem liste ne kadar yer kaplayacağını bilemiyor ve hata veriyor
+                              SizedBox(
+                                height: 120,
+                                child: ListView.builder(
+                                  scrollDirection: Axis
+                                      .horizontal, // listenin yan olmasını sağlamak için bu gerekli
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                  ),
+
+                                  // 40 verinin sadece ilk 8'ini göstermek istiyorum
+                                  itemCount: fullList.length > 8
+                                      ? 8
+                                      : fullList.length,
+
+                                  itemBuilder: (context, index) {
+                                    final item = fullList[index];
+
+                                    //tarih verisinden sadece saati çekmek için
+                                    final dateObj = DateTime.parse(
+                                      item.dayName,
+                                    );
+                                    final hourString = "${dateObj.hour}:00";
+
+                                    return Container(
+                                      width:
+                                          80, //her bir saat kutusunun genişliği
+                                      margin: const EdgeInsets.all(5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(
+                                          0.1,
+                                        ), // hfif şeffaf arka plan
+                                        borderRadius: BorderRadius.circular(
+                                          15,
+                                        ), // köşeleri yuvarlattım
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          // saati yazdır
+                                          Text(
+                                            hourString,
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          // YENİ: İkonu koy
+                                          Image.network(
+                                            item.iconUrl,
+                                            width: 40,
+                                          ),
+                                          // dereceyi yazdır
+                                          Text(
+                                            "${item.temperature.round()}°",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+
+                              // 5 günlük tahmin
+                              const SizedBox(
+                                height: 20,
+                              ), //iki liste arasına boşluk koydum
+
+                              const Text(
+                                "  5-Day Forecast", //başlığın başına biraz boşluk ekledim hizalı dursun diye
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+
+                              // listeyi göstermek için Container içine ListView koyuyorum
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: ListView.builder(
+                                  physics:
+                                      const NeverScrollableScrollPhysics(), // kaydırmayı kapatıyorum çünkü dışarıda zaten kaydırma var
+                                  shrinkWrap: true,
+
+                                  itemCount: fullList
+                                      .where((i) => i.dayName.contains("12:00"))
+                                      .length,
+
+                                  itemBuilder: (context, index) {
+                                    // sadece 12:00 olanlardan oluşan liste
+                                    final dailyList = fullList
+                                        .where(
+                                          (i) => i.dayName.contains("12:00"),
+                                        )
+                                        .toList();
+                                    final item = dailyList[index];
+
+                                    // tarihi düzeltme kısmı raw data yerine gelecek
+                                    final date = DateTime.parse(item.dayName);
+                                    final List<String> weekDays = [
+                                      "Mon",
+                                      "Tue",
+                                      "Wed",
+                                      "Thu",
+                                      "Fri",
+                                      "Sat",
+                                      "Sun",
+                                    ];
+                                    final String dayName =
+                                        weekDays[date.weekday - 1];
+
+                                    return Card(
+                                      color: Colors.white.withOpacity(
+                                        0.1,
+                                      ), // hafif şeffaf kart
+                                      child: ListTile(
+                                        leading: Image.network(
+                                          item.iconUrl,
+                                          width: 50,
+                                        ),
+                                        title: Text(
+                                          dayName, // item.dayName yerine dayName değişkenini koydum
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize:
+                                                18, // Biraz büyüttüm daha şık dursun diye
+                                            fontWeight: FontWeight
+                                                .bold, // Kalınlaştırdım
+                                          ),
+                                        ),
+                                        trailing: Text(
+                                          "${item.temperature.round()}°",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           );
                         }
                         return const SizedBox(); // veri yoksa gösterme

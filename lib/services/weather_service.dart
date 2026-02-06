@@ -7,13 +7,17 @@ import 'package:flutter_dotenv/flutter_dotenv.dart'; // .env dosyasını kullanm
 
 class WeatherService {
   final String apiKey = dotenv.env['OPENWEATHER_API_KEY'] ?? '';
-  final String baseUrl = 'https://api.openweathermap.org/data/2.5/weather';
+
+  final String baseUrl = 'https://api.openweathermap.org/data/2.5';
 
   // --- FONKSİYON 1: Şehir İsmine Göre Getiren fonksiyonum ---
   // 1. Future: gelcekte bir fonksiyon gelecek diyor
   // 2. async:bu fonksiyonun içine beklemeli işler var diyor
   Future<WeatherModel> getWeather(String cityName) async {
-    final url = Uri.parse('$baseUrl?q=$cityName&appid=$apiKey&units=metric');
+    // YENİ: '/weather' kelimesini buraya ekledim
+    final url = Uri.parse(
+      '$baseUrl/weather?q=$cityName&appid=$apiKey&units=metric',
+    );
 
     // 3. await:
     // Kod burada durup internetten cevap gelmesini bekliyor.
@@ -50,8 +54,9 @@ class WeatherService {
     );
 
     // 3. urlOluştur
+    //buraya da '/weather' kelimesini ekledim
     final url = Uri.parse(
-      '$baseUrl?lat=${position.latitude}&lon=${position.longitude}&appid=$apiKey&units=metric',
+      '$baseUrl/weather?lat=${position.latitude}&lon=${position.longitude}&appid=$apiKey&units=metric',
     );
 
     final response = await http.get(url);
@@ -66,26 +71,19 @@ class WeatherService {
 
   // --- yeni fonksiyonum  ---
   Future<List<ForecastModel>> getForecast(String cityName) async {
+    // artık burası düzgün çalışıyor '/forecast' ekleyince sorun olmuyor
     final url = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/forecast?q=$cityName&appid=$apiKey&units=metric',
-    );
+      '$baseUrl/forecast?q=$cityName&appid=$apiKey&units=metric',
+    ); // BaseUrl kullandım
 
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(response.body);
+      final List<dynamic> listData = data['list'];
 
-      // JSON'un içinde "list" diye bir dizi var onu ham haliyle al demek
-      final List<dynamic> rawList = data['list'];
-
-      //sadece saat 12de gelen veriyi seçiyorum bir sürü geldiği için, çünkü her 3 saatte bir veri geliyor
-      final filteredList = rawList.where((item) {
-        final dateText = item['dt_txt'] as String;
-        return dateText.contains('12:00:00');
-      }).toList();
-
-      // artık elimde sadece 5 tane veri var
-      return filteredList.map((item) => ForecastModel.fromJson(item)).toList();
+      //filtreyi kaldırdım çünkü 3 saatlik tahminleri göstermek istiyorum
+      return listData.map((item) => ForecastModel.fromJson(item)).toList();
     } else {
       throw Exception('Tahmin verisi gelmedi: ${response.statusCode}');
     }
