@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
   http: ^1.2.0              # API istekleri için
   geolocator: ^14.0.2       # Konum almak için
-  shared_preferences: ^2.3.0 # Verileri saklamak için
+  shared_preferences: ^2.5.4 # Verileri saklamak için
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
