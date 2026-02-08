@@ -85,7 +85,7 @@ class WeatherService {
       //filtreyi kaldırdım çünkü 3 saatlik tahminleri göstermek istiyorum
       return listData.map((item) => ForecastModel.fromJson(item)).toList();
     } else {
-      throw Exception('Tahmin verisi gelmedi: ${response.statusCode}');
+      throw Exception('Error: ${response.statusCode}');
     }
   }
 }

@@ -1,414 +1,170 @@
 import 'package:flutter/material.dart';
-import '../models/weather_model.dart';
 import '../services/weather_service.dart';
-
+import '../models/weather_model.dart';
 import '../models/forecast_model.dart';
+import '../widgets/hourly_forecast_widget.dart';
+import '../widgets/daily_forecast_widget.dart';
 
 class WeatherScreen extends StatefulWidget {
-  const WeatherScreen({super.key});
+  final String? cityInput;
+
+  const WeatherScreen({super.key, this.cityInput});
 
   @override
   State<WeatherScreen> createState() => _WeatherScreenState();
 }
 
 class _WeatherScreenState extends State<WeatherScreen> {
-  //servis çağırıyorum
   final WeatherService _weatherService = WeatherService();
-
-  //veriyi tutacak değişken
-  late Future<WeatherModel> _weatherFuture;
-
-  //yeni ekledim tahmin verisi için
-  late Future<List<ForecastModel>> _forecastFuture;
-
-  //yeni ekledim arama çubuğu koymak için
-  final TextEditingController _controller = TextEditingController();
-
-  bool _isSearching = false;
-
-  void _searchCity() async {
-    final cityName = _controller.text;
-    if (cityName.isNotEmpty) {
-      setState(() {
-        _weatherFuture = _weatherService.getWeather(cityName);
-        _forecastFuture = _weatherService.getForecast(cityName);
-
-        _isSearching = false; // arama kapansın
-      });
-      _controller.clear(); // kutuyu temizle
-    }
-  }
+  
+  Future<WeatherModel>? _weatherFuture;
+  Future<List<ForecastModel>>? _forecastFuture;
 
   @override
   void initState() {
     super.initState();
-    // gps fonksiyonunu çağırıyorum
-    _weatherFuture = _weatherService.getWeatherByLocation();
-    _forecastFuture = Future.value(
-      [],
-    ); //başlangıçta boş liste hata almamak için
+    _initWeather();
+  }
+
+  void _initWeather() {
+    if (widget.cityInput != null) {
+      _weatherFuture = _weatherService.getWeather(widget.cityInput!);
+      _forecastFuture = _weatherService.getForecast(widget.cityInput!);
+    } else {
+      _weatherFuture = _weatherService.getWeatherByLocation();
+      _forecastFuture = Future.value([]); 
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      //apple stili koyu arka plan
       backgroundColor: Colors.black,
-
-      // --- app bar arama butonu  ---
       appBar: AppBar(
-        backgroundColor: Colors.transparent, // arkaplan şeffaf
-        elevation: 0, // shadow yok
-        // Eğer _isSearching TRUE ise -> TextField (Yazı alanı) göster
-        // Eğer _isSearching FALSE ise -> Text (Başlık) göster
-        title: _isSearching
-            ? TextField(
-                controller: _controller,
-                style: const TextStyle(color: Colors.white), // Yazı rengi beyaz
-                decoration: const InputDecoration(
-                  hintText: "Enter City Name",
-                  hintStyle: TextStyle(color: Colors.grey),
-                  border: InputBorder.none, // Alt çizgiyi kaldırdım çirkindi
-                ),
-                autofocus: true, // Açıldığı gibi klavye gelsin
-                onSubmitted: (value) {
-                  _searchCity(); // Klavyeden git tuşuna basınca ara
-                },
-              )
-            : const Text("Weather App"), // Arama yoksa başlık kalsın
-
-        actions: [
-          IconButton(
-            // arama varsa 'X' kapat, yoksa büyüteç işareti ara demek
-            icon: Icon(
-              _isSearching ? Icons.close : Icons.search,
-              color: Colors.white,
-              size: 30,
-            ),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) {
-                  // eğer arama açıksa ve basıldıysa -> kkapat ve temizle
-                  _isSearching = false;
-                  _controller.clear();
-                } else {
-                  // eğer kapalıysa ve basıldıysa -> arama modunu aç
-                  _isSearching = true;
-                }
-              });
-            },
-          ),
-        ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: 0,
       ),
+      body: FutureBuilder<WeatherModel>(
+        future: _weatherFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: Colors.white));
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Hata: ${snapshot.error}", style: const TextStyle(color: Colors.white)));
+          }
+          if (!snapshot.hasData) return const SizedBox();
 
-      body: Center(
-        // listeyi ekleyince ekran boyunu aştı kaydırma özelliği eklenmesi gerek
-        child: SingleChildScrollView(
-          child: FutureBuilder<WeatherModel>(
-            future: _weatherFuture,
-            builder: (context, snapshot) {
-              //hala yükleniyor mu?
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator(color: Colors.white);
-              }
+          final weather = snapshot.data!;
+          
+          if (widget.cityInput == null && (_forecastFuture == null || snapshot.connectionState == ConnectionState.done)) {
+             _forecastFuture = _weatherService.getForecast(weather.cityName);
+          }
 
-              //hata var mı?
-              if (snapshot.hasError) {
-                return Text(
-                  "Hata: ${snapshot.error}",
-                  style: const TextStyle(color: Colors.white),
-                );
-              }
-
-              //veri geldi mi?
-              if (snapshot.hasData) {
-                final weather = snapshot.data!;
-
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+          return Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/night_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: RefreshIndicator(
+              onRefresh: () async { setState(() { _initWeather(); }); },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(top: 60, bottom: 40),
+                child: Column(
                   children: [
-                    Image.network(weather.iconUrl, width: 100, height: 100),
-
-                    // şehir İsmi
+                    // --- 1. ŞEHİR ADI ---
                     Text(
                       weather.cityName,
                       style: const TextStyle(
-                        fontSize: 32,
+                        fontSize: 34,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
+                        shadows: [Shadow(blurRadius: 10, color: Colors.black45)],
                       ),
                     ),
-                    const SizedBox(height: 10), //boşluk bıraktık
-                    // sıcaklık
+                    
+                    // --- 2. SICAKLIK ---
                     Text(
-                      "${weather.temperature.round()}°", // .round() ile küsüratı kaldırılıyor
+                      "${weather.temperature.round()}°",
                       style: const TextStyle(
-                        fontSize: 80,
+                        fontSize: 90,
                         fontWeight: FontWeight.w200,
                         color: Colors.white,
                       ),
                     ),
-
-                    //durum acıklaması
+                    
+                    // --- 3. DURUM ---
                     Text(
                       weather.description.toUpperCase(),
-                      style: const TextStyle(fontSize: 20, color: Colors.grey),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
+
                     const SizedBox(height: 30),
 
+                    // --- nem ve rüzgar (bunu yanlışlıkla silmişitm)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment
-                          .spaceEvenly, // spaceEvenly adından anlaşıldığı gibi eşit aralıklı olsun demek
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // nem
+                        // nem (Humidity)
                         Column(
                           children: [
-                            const Icon(
-                              Icons.water_drop,
-                              color: Colors.blue,
-                              size: 30,
-                            ),
+                            const Icon(Icons.water_drop, color: Colors.blueAccent, size: 28),
                             const SizedBox(height: 5),
-                            const Text(
-                              "Humidity",
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                            Text(
-                              "%${weather.humidity}",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                              ),
-                            ),
+                            const Text("Humidity", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text("%${weather.humidity}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                           ],
                         ),
-
-                        // Rüzgar
+                        const SizedBox(width: 50), // araya boşluk
+                        // rğzgar (Wind)
                         Column(
                           children: [
-                            const Icon(
-                              Icons.air,
-                              color: Colors.white,
-                              size: 30,
-                            ),
+                            const Icon(Icons.air, color: Colors.white, size: 28),
                             const SizedBox(height: 5),
-                            const Text(
-                              "Wind Speed",
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                            Text(
-                              "${weather.windSpeed} km/h",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                              ),
-                            ),
+                            const Text("Wind", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text("${weather.windSpeed} km/h", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ],
                     ),
+                    
+                    const SizedBox(height: 40),
 
-                    // --- 5 günlük tahmin ---
-                    const SizedBox(height: 40), //araya biraz boşluk
-                    // İkinci FutureBuilder
+                    // --- 5. SAATLİK TAHMİN ---
                     FutureBuilder<List<ForecastModel>>(
                       future: _forecastFuture,
-                      builder: (context, snapshotForecast) {
-                        if (snapshotForecast.hasData) {
-                          // fulllist adında yeni bir değişken oluşturdum ve snapshot içindeki veriyi ona atadım
-                          final fullList = snapshotForecast.data!;
-
-                          // eğer liste boş sa hiçbir şey gösterme
-                          if (fullList.isEmpty) return const SizedBox();
-
-                          //hem yatay hem dikey listeyi alt alta göstermek için Column kullandım
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              //saatlik tahmin
-
-                              // Hourly Forecast başlığı
-                              const Padding(
-                                padding: EdgeInsets.only(left: 20, bottom: 10),
-                                child: Text(
-                                  "Hourly Forecast",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-
-                              // yatay liste için bir Containeraçtım ve yükseklik verdim
-                              //yükseklik vermezsem liste ne kadar yer kaplayacağını bilemiyor ve hata veriyor
-                              SizedBox(
-                                height: 120,
-                                child: ListView.builder(
-                                  scrollDirection: Axis
-                                      .horizontal, // listenin yan olmasını sağlamak için bu gerekli
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                  ),
-
-                                  // 40 verinin sadece ilk 8'ini göstermek istiyorum
-                                  itemCount: fullList.length > 8
-                                      ? 8
-                                      : fullList.length,
-
-                                  itemBuilder: (context, index) {
-                                    final item = fullList[index];
-
-                                    //tarih verisinden sadece saati çekmek için
-                                    final dateObj = DateTime.parse(
-                                      item.dayName,
-                                    );
-                                    final hourString = "${dateObj.hour}:00";
-
-                                    return Container(
-                                      width:
-                                          80, //her bir saat kutusunun genişliği
-                                      margin: const EdgeInsets.all(5),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(
-                                          0.1,
-                                        ), // hfif şeffaf arka plan
-                                        borderRadius: BorderRadius.circular(
-                                          15,
-                                        ), // köşeleri yuvarlattım
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          // saati yazdır
-                                          Text(
-                                            hourString,
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                          // YENİ: İkonu koy
-                                          Image.network(
-                                            item.iconUrl,
-                                            width: 40,
-                                          ),
-                                          // dereceyi yazdır
-                                          Text(
-                                            "${item.temperature.round()}°",
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              // 5 günlük tahmin
-                              const SizedBox(
-                                height: 20,
-                              ), //iki liste arasına boşluk koydum
-
-                              const Text(
-                                "  5-Day Forecast", //başlığın başına biraz boşluk ekledim hizalı dursun diye
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-
-                              // listeyi göstermek için Container içine ListView koyuyorum
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                child: ListView.builder(
-                                  physics:
-                                      const NeverScrollableScrollPhysics(), // kaydırmayı kapatıyorum çünkü dışarıda zaten kaydırma var
-                                  shrinkWrap: true,
-
-                                  itemCount: fullList
-                                      .where((i) => i.dayName.contains("12:00"))
-                                      .length,
-
-                                  itemBuilder: (context, index) {
-                                    // sadece 12:00 olanlardan oluşan liste
-                                    final dailyList = fullList
-                                        .where(
-                                          (i) => i.dayName.contains("12:00"),
-                                        )
-                                        .toList();
-                                    final item = dailyList[index];
-
-                                    // tarihi düzeltme kısmı raw data yerine gelecek
-                                    final date = DateTime.parse(item.dayName);
-                                    final List<String> weekDays = [
-                                      "Mon",
-                                      "Tue",
-                                      "Wed",
-                                      "Thu",
-                                      "Fri",
-                                      "Sat",
-                                      "Sun",
-                                    ];
-                                    final String dayName =
-                                        weekDays[date.weekday - 1];
-
-                                    return Card(
-                                      color: Colors.white.withOpacity(
-                                        0.1,
-                                      ), // hafif şeffaf kart
-                                      child: ListTile(
-                                        leading: Image.network(
-                                          item.iconUrl,
-                                          width: 50,
-                                        ),
-                                        title: Text(
-                                          dayName, // item.dayName yerine dayName değişkenini koydum
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize:
-                                                18, // Biraz büyüttüm daha şık dursun diye
-                                            fontWeight: FontWeight
-                                                .bold, // Kalınlaştırdım
-                                          ),
-                                        ),
-                                        trailing: Text(
-                                          "${item.temperature.round()}°",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                        return const SizedBox(); // veri yoksa gösterme
+                      builder: (context, forecastSnapshot) {
+                         if (forecastSnapshot.hasData && forecastSnapshot.data!.isNotEmpty) {
+                           return HourlyForecastWidget(forecasts: forecastSnapshot.data!);
+                         }
+                         return const SizedBox(height: 120);
                       },
                     ),
 
-                    // --- 5 günlük tahmin bitti ---
-                  ],
-                );
-              }
+                    const SizedBox(height: 20),
 
-              //hiçbiri yoksa boş döndürsün
-              return const Text("Veri yok");
-            },
-          ),
-        ),
+                    // --- 6. GÜNLÜK TAHMİN (O Çubuklu Liste) ---
+                    FutureBuilder<List<ForecastModel>>(
+                      future: _forecastFuture,
+                      builder: (context, forecastSnapshot) {
+                         if (forecastSnapshot.hasData && forecastSnapshot.data!.isNotEmpty) {
+                           return DailyForecastWidget(forecasts: forecastSnapshot.data!);
+                         }
+                         return const SizedBox();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

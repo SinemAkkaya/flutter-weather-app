@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/weather_screen.dart'; //birazdan oluşturacağım
+import 'screens/weather_home.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false, //debug yazısını kaldırır
       title: 'Weather App',
       theme: ThemeData.dark(),
-      home: const WeatherScreen(), //açılış sayfam
+      home: const WeatherHome(), //açılış sayfam
     );
   }
 }
