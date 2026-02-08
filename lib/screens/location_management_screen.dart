@@ -13,8 +13,8 @@ class LocationManagementScreen extends StatefulWidget {
 }
 
 class _LocationManagementScreenState extends State<LocationManagementScreen> {
-//servislerimi burada başlattım
-//hem veritabanı hem hava durumu servisine ihtiyacım var
+  //servislerimi burada başlattım
+  //hem veritabanı hem hava durumu servisine ihtiyacım var
   final StorageService _storageService = StorageService();
   final WeatherService _weatherService = WeatherService();
 
@@ -41,8 +41,8 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
   Future<void> _addCity(String city) async {
     try {
       // rastgele şeyler yazılmasın diye önce API'ye soruyorum böy le bir şehir var mı diye
-      await _weatherService.getWeather(city); 
-      
+      await _weatherService.getWeather(city);
+
       // eğer yazılan şehir geçerliyse VE listede zaten yoksa ekle (Çift kayıt olmasın)
       //başta sadece geçerliyse diye baktım aynı şehri 10 kere ekleyebiliyordum o yüzden ikinci şartı da ekledim
       if (city.isNotEmpty && !_savedCities.contains(city)) {
@@ -51,22 +51,36 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
         setState(() {
           _isSearching = false; // aramayı kapattık
         });
-        await _loadCities(); // Listeyi güncelle ki yeni şehir hemen görünsün yoksa ekledikten sonra sayfayı yenilemek gerekiyor ve bu kötü bir kullanıcı deneyimi olur 
+        await _loadCities(); // Listeyi güncelle ki yeni şehir hemen görünsün yoksa ekledikten sonra sayfayı yenilemek gerekiyor ve bu kötü bir kullanıcı deneyimi olur
       }
     } catch (e) {
-      // şehir bulunamazsa kullanıcıya alttan uyarı veriyorum 
+      // şehir bulunamazsa kullanıcıya alttan uyarı veriyorum
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("We couldn’t find this city. Please check the spelling and try again.")),
+          const SnackBar(
+            content: Text(
+              "We couldn’t find this city. Please check the spelling and try again.",
+            ),
+          ),
         );
       }
     }
   }
 
+  //----sorun çözüldüü---
+  // artık listeden şehir silerken donmayacak
+  // çünkü önce ekrandan siliyorum sonra arka planda veritabanından siliyorum
+  //böylece kullanıcı anında sonucu görüyor ve uygulama donmuyor
   Future<void> _removeCity(String city) async {
-    // hem hafızadan siliyorum hem de ekranı güncelliyorum
+    // 1. ÖNCE EKRANDAN SİL (Kullanıcı donma hissetmesin)
+    setState(() {
+      _savedCities.remove(city);
+    });
+
+    // 2. SONRA ARKADA VERİTABANINDAN SİL
     await _storageService.removeCity(city);
-    await _loadCities();
+
+    // Not: Tekrar _loadCities() çağırmama gerek yok
   }
 
   @override
@@ -95,16 +109,18 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
             : const Text(
                 "Weather",
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
         actions: [
           IconButton(
             //duruma göre büyüteç veya çarpı ikonu
             icon: Icon(
-                _isSearching ? Icons.cancel : Icons.search_rounded,
-                color: Colors.white),
+              _isSearching ? Icons.cancel : Icons.search_rounded,
+              color: Colors.white,
+            ),
             onPressed: () {
               setState(() {
                 if (_isSearching) {
@@ -120,16 +136,18 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
       ),
       body: ListView(
         children: [
-          
           // Artık burası canlı çalışıyor my location kısmında GPS verisi direkt kartın içinde gösterili yor
           FutureBuilder<WeatherModel>(
-            future: _weatherService.getWeatherByLocation(), // konum verisini aldım
+            future: _weatherService
+                .getWeatherByLocation(), // konum verisini aldım
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
-                    child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: CircularProgressIndicator(color: Colors.white)));
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                );
               }
 
               if (snapshot.hasError) {
@@ -138,10 +156,13 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                      color: Colors.grey[900],
-                      borderRadius: BorderRadius.circular(20)),
-                  child: const Text("Konum bulunamadı",
-                      style: TextStyle(color: Colors.white)),
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    "Konum bulunamadı",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 );
               }
 
@@ -152,20 +173,24 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
               return LocationCard(
                 cityName: "My Location", // bşlık sabit
                 temperature: temp,
-                condition: weather.cityName, // altına gerçek ilçe/şehir ismi yazıyor
-                highLow: "H:$temp° L:$temp°", 
+                condition:
+                    weather.cityName, // altına gerçek ilçe/şehir ismi yazıyor
+                highLow: "H:$temp° L:$temp°",
                 onTap: () {
-                  Navigator.pop(context, "GPS_LOCATION"); // ana sayfaya Ben GPS'i seçtim diye haber gitsin
+                  Navigator.pop(
+                    context,
+                    "GPS_LOCATION",
+                  ); // ana sayfaya Ben GPS'i seçtim diye haber gitsin
                 },
                 // My Location silinmese daha iyi olur sanırım o yüzden boş fonksiyon verdim
-                onDelete: () {}, 
+                onDelete: () {},
               );
             },
           ),
 
           // kaydedilmiş şehirler listesi
           if (_savedCities.isEmpty)
-             const SizedBox() // liste boşsa yer kaplamasın
+            const SizedBox() // liste boşsa yer kaplamasın
           else
             // eklediğim şehirleri listeliyorum her biri için tekrar API'ye gidip güncel dereceyi çekiyorum.
             ..._savedCities.map((cityName) {
@@ -182,7 +207,10 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                     condition: weather.description.toUpperCase(),
                     highLow: "H:$temp° L:$temp°",
                     onTap: () {
-                      Navigator.pop(context, cityName); // seçilen şehri ana sayfaya yolla
+                      Navigator.pop(
+                        context,
+                        cityName,
+                      ); // seçilen şehri ana sayfaya yolla
                     },
                     onDelete: () => _removeCity(cityName), // kaydırınca sil
                   );
