@@ -5,6 +5,9 @@ class WeatherModel {
   final String iconCode;
   final double windSpeed;
   final int humidity;
+  //yeni ekldim
+  final double feelsLike;
+  final int pressure;
 
   //Constructor: bu alanlar zorunludur (required), Swift'teki gibi boş (nil) olamazlar. (optional ın tersi )
   //gelen veriyi direkt değişkene koy demek için this. kullanıyorum
@@ -15,6 +18,9 @@ class WeatherModel {
     required this.iconCode,
     required this.windSpeed,
     required this.humidity,
+    // yeni eklediğim kısımlar da zorunlu
+    required this.feelsLike,
+    required this.pressure,
   });
 
   // Factory Constructor: JSON verisini alıp Model nesnesine çeviren yapı ( swift'teki 'Decoder' burada manuel yapılıyor.)
@@ -33,10 +39,14 @@ class WeatherModel {
       humidity:
           json['main']['humidity']
               as int, //nem zaten hep tam sayıdır .toDouble yapmama gerek yok
+
+      feelsLike: (json['main']['feels_like'] as num)
+          .toDouble(), // hissedilen de buçuklu olabilir
+      pressure: json['main']['pressure'] as int, // basınç genelde tam sayıdır
     );
   }
- String get iconUrl {
+
+  String get iconUrl {
     return 'https://openweathermap.org/img/wn/$iconCode@4x.png';
   }
 }
- 
