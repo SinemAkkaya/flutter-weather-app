@@ -16,7 +16,7 @@ class HourlyForecastWidget extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Text(
-            "SAATLİK TAHMİN",
+            "HOURLY FORECAST",
             style: TextStyle(
               color: Colors.white54,
               fontSize: 13,

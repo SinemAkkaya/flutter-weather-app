@@ -72,9 +72,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
           }
 
           return Container(
-            decoration: const BoxDecoration(
+            // buradaki 'const' sildim çünkü fonksiyon sonucu sabit değil
+            decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/images/night_bg.png'),
+                // resimleri getiren fonksiyonu burda çağırıyorum
+                image: AssetImage(_getBackgroundImage(weather.iconCode)),
                 fit: BoxFit.cover,
               ),
             ),
@@ -123,7 +125,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
                     const SizedBox(height: 30),
 
-                    // ---Yenilendi ---
                     // eski Row yerine bu GridView geldi. !!
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -210,7 +211,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
   }
 
   // --- kartları çizen yardımcı fonksiyon---
-
   Widget _buildDetailCard(
     String title,
     String value,
@@ -255,5 +255,36 @@ class _WeatherScreenState extends State<WeatherScreen> {
         ],
       ),
     );
+  }
+
+  // hava durumunun koduna göre assest dosyasına attığım resimlerin arka plan olmasını istiyorum bu fonksiyon bu işe yarıyor
+
+  String _getBackgroundImage(String? iconCode) {
+    if (iconCode == null) return 'assets/images/night_bg.png';
+
+    // 'n' harfi varsa gecedir (night), 'd' varsa gündüzdür (day).
+    bool isNight = iconCode.endsWith('n');
+
+    if (isNight) {
+      return 'assets/images/night_bg.png'; // geceyse gece resmi
+    }
+
+    // gündüz ise hava durumuna göre resim seçiyoruz
+    if (iconCode.contains('01')) {
+      return 'assets/images/sunny.png'; // güneşli
+    } else if (iconCode.contains('02') ||
+        iconCode.contains('03') ||
+        iconCode.contains('04') ||
+        iconCode.contains('50')) {
+      return 'assets/images/cloudy.png'; // bulutlu
+    } else if (iconCode.contains('09') ||
+        iconCode.contains('10') ||
+        iconCode.contains('11')) {
+      return 'assets/images/rainy.png'; // yağmurlu
+    } else if (iconCode.contains('13')) {
+      return 'assets/images/snowy.png'; // karlı
+    }
+
+    return 'assets/images/sunny.png';
   }
 }

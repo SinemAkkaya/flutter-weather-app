@@ -27,5 +27,10 @@ flutter:
 
   # Dosyaları Tanıtma Bölümü
   assets:
-    - .env
-    - assets/images/  # Resimler için klasör
+    - assets/images/night_bg.png
+    - assets/images/sunny.png
+    - assets/images/cloudy.png
+    - assets/images/rainy.png
+    - assets/images/snowy.png
+    # Veya tek tek yazmak yerine klasörü komple # - assets/images/ şeklinde yazabilirmişim
+    

@@ -50,7 +50,7 @@ class DailyForecastWidget extends StatelessWidget {
               Icon(Icons.calendar_month, color: Colors.white54, size: 16),
               SizedBox(width: 8),
               Text(
-                "5-GÜNLÜK TAHMİN",
+                "5-DAY FORECAST",
                 style: TextStyle(
                   color: Colors.white54,
                   fontSize: 13,
@@ -85,14 +85,15 @@ class DailyForecastWidget extends StatelessWidget {
               // totalRange: bu haftalık toplam sıcaklık farkı (Örn: hafta en az 10, en çok 20 ise range 10'dur)
               double totalRange = weekMax - weekMin;
               if (totalRange == 0)
-                totalRange = 1; // sıfıra bölünme hatasını önlemek için (örneğin tüm hafta aynı sıcaklıksa)
+                totalRange =
+                    1; // sıfıra bölünme hatasını önlemek için (örneğin tüm hafta aynı sıcaklıksa)
 
               // normalizeMin: Çubuğun sol boşluğu 0 - 1 arası
               double normalizeMin = (dayMin - weekMin) / totalRange;
               // normalizeMax: Çubuğun genişliği 0-1 arası
               double normalizeWidth = (dayMax - dayMin) / totalRange;
 
-              //Eğer(width 0 ise) en azından bir nokta kadar görünsün 
+              //Eğer(width 0 ise) en azından bir nokta kadar görünsün
               if (normalizeWidth < 0.1) normalizeWidth = 0.1;
 
               return Padding(
@@ -156,7 +157,9 @@ class DailyForecastWidget extends StatelessWidget {
                                 child: Container(
                                   // Margin ile soldan ve sağdan iterek barı doğru yere sıkıştırıyorum
                                   margin: EdgeInsets.only(
-                                    left: 100 * normalizeMin, //soldan hizalamaayarı
+                                    left:
+                                        100 *
+                                        normalizeMin, //soldan hizalamaayarı
                                     right:
                                         100 *
                                         (1.0 -
@@ -201,7 +204,7 @@ class DailyForecastWidget extends StatelessWidget {
     );
   }
 
-  // sıcaklığa göre renk değiştiren ekstra havalı fonksiyon 
+  // sıcaklığa göre renk değiştiren ekstra havalı fonksiyon
   List<Color> _getGradientColors(double temp) {
     if (temp < 0) {
       return [Colors.blue, Colors.lightBlueAccent]; // çok soğuk
