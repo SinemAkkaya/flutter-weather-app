@@ -1,114 +1,122 @@
 import 'package:flutter/material.dart';
+import '../models/weather_model.dart';
 
 class LocationCard extends StatelessWidget {
-  final String cityName;
-  final String temperature;
-  final String condition;
-  final String highLow; // en yüksek-En düşük
-  final VoidCallback onTap; // ttıklanınca ne olsun?
-  final VoidCallback onDelete; // silinince ne olsun?
+  final WeatherModel weather;
+  final bool
+  isCurrentLocation; // "My Location" yazıp yazmayacağını anlamak için (şehir ismi altta olsun mu diye)
+  final VoidCallback onTap; // tıklanınca detaya gitmek için
 
   const LocationCard({
     super.key,
-    required this.cityName,
-    required this.temperature,
-    required this.condition,
-    required this.highLow,
+    required this.weather,
+    this.isCurrentLocation = false,
     required this.onTap,
-    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Dismissible(
-      key: Key(cityName),
-      direction: DismissDirection.endToStart, // sdece sağdan sola kaydır
-      onDismissed: (_) => onDelete(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: Colors.red,
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          height: 120, // kartın yüksekliği
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            // gradient kart tasarımı
-            gradient: const LinearGradient(
-              colors: [Color(0xFF2E335A), Color(0xFF1C1B33)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 120, // kartların yüksekliği
+        margin: const EdgeInsets.symmetric(
+          vertical: 8,
+        ), // karrtlar arasında boşluk
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          // --- DİNAMİK ARKA PLAN RESMİ ---
+          image: DecorationImage(
+            image: AssetImage(_getBackgroundImage(weather.iconCode)),
+            fit: BoxFit.cover,
+            // resim çok parlakken yazılar okunmuyor diye bende hafif siyahlık koydum
+            colorFilter: ColorFilter.mode(
+              Colors.black.withOpacity(0.25),
+              BlendMode.darken,
             ),
-            borderRadius: BorderRadius.circular(20), // köşeleri yuvarla
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              ),
-            ],
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // yazılar başta sığmadı ama şimdi expanded kullanarak sol tarafın "kalan tüm boşluğu" almasını sağladım.
-              // böylece sağdaki dereceyi asla sıkıştırmaz.
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      cityName,
-                      maxLines: 1, // en fazla 1 satır olsun
-                      overflow: TextOverflow
-                          .ellipsis, // Sığmazsa ... koy az önce sığmamıştı
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      condition, // hava durumu
-                      maxLines:
-                          1, // uzun hava durumu açıklaması da 1 satır olsun
-                      overflow: TextOverflow.ellipsis, // sığmazsa yine ... olsun
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14, // yazıyı hafif küçülttüm sığması için
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // iki sütun birbirine yapışmasın diye araya boşluk koydum
-              const SizedBox(width: 10),
-
-              // derece ve min/max
+              // --- SOL TARAFTAKİ BİLGİLER (Şehir, Saat, Durum) ---
               Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Başlık (My Location veya Şehir Adı)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isCurrentLocation ? "My Location" : weather.cityName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(blurRadius: 5, color: Colors.black45),
+                          ],
+                        ),
+                      ),
+                      // eğer My Location ise altında şehir adı yazsın figmada böyle
+                      if (isCurrentLocation)
+                        Text(
+                          weather.cityName,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  // Hava Durumu Açıklaması (alt kısım)
                   Text(
-                    "$temperature°",
+                    weather.description, // Parçalı bulutlu vs.
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w300,
+                      color: Colors.white, // Apple'da burası beyazdı
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const Spacer(),
+                ],
+              ),
+
+              // --- SAĞ TARAFTAKİ BİLGİLER (Derece, H: L:) ---
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Sıcaklık
                   Text(
-                    highLow,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    "${weather.temperature.round()}°",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 48, // Büyük derece
+                      fontWeight: FontWeight.w300, // İnce (Thin)
+                      shadows: [Shadow(blurRadius: 5, color: Colors.black45)],
+                    ),
+                  ),
+
+                  // En Yüksek / En Düşük
+                  Text(
+                    "H:${(weather.temperature + 5).round()}° L:${(weather.temperature - 5).round()}°",
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -117,5 +125,24 @@ class LocationCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // --- RESİM SEÇME FONKSİYONU (Aynısını koydum çünkü ana ekran gibi burda da resimler görünsün istiyorum) ---
+  String _getBackgroundImage(String? iconCode) {
+    if (iconCode == null) return 'assets/images/night_bg.png';
+    bool isNight = iconCode.endsWith('n');
+    if (isNight) return 'assets/images/night_bg.png';
+    if (iconCode.contains('01')) return 'assets/images/sunny.png';
+    if (iconCode.contains('02') ||
+        iconCode.contains('03') ||
+        iconCode.contains('04') ||
+        iconCode.contains('50'))
+      return 'assets/images/cloudy.png';
+    if (iconCode.contains('09') ||
+        iconCode.contains('10') ||
+        iconCode.contains('11'))
+      return 'assets/images/rainy.png';
+    if (iconCode.contains('13')) return 'assets/images/snowy.png';
+    return 'assets/images/sunny.png';
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/forecast_model.dart';
+import 'dart:ui'; // ImageFilter için ekledim
 
 class HourlyForecastWidget extends StatelessWidget {
   final List<ForecastModel> forecasts;
@@ -42,63 +43,73 @@ class HourlyForecastWidget extends StatelessWidget {
               ).format(DateTime.parse(forecast.date));
               final temp = "${forecast.temperature.round()}°";
 
-              // ikon için OpenWeatherMap'ten resim geliyor url oluyor
-              // 4x eklemeyince ikonlar bulanık oluyordu sebebi bunu koymamakmış
+              // ikon için OpenWeatherMap'ten resim geliyor
               final iconUrl =
                   "https://openweathermap.org/img/wn/${forecast.icon}@2x.png";
 
+              // ---artık şeffaf kartlar ---
               return Container(
-                width: 70, // kart genişliği
-                margin: const EdgeInsets.only(
-                  right: 12,
-                ), // kartlar arası boşluk
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1C1C1E), // koyu gri arkaplan
-                  borderRadius: BorderRadius.circular(15), // köşeleri yuvarla
-                  border: Border.all(
-                    color: Colors.white10,
-                  ), // çok ince beyaz çerçeve
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // SAAT
-                    Text(
-                      timeText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                width: 70,
+                margin: const EdgeInsets.only(right: 12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3), // Blur
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C1E).withOpacity(
+                          0.3,
+                        ), // şeffaflık arttı
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                        ), // ince çerçeve
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // SAAT
+                          Text(
+                            timeText,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+
+                          const SizedBox(height: 5),
+
+                          // İKON
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: Image.network(
+                              iconUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(
+                                    Icons.cloud,
+                                    color: Colors.white54,
+                                  ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 5),
+
+                          // DERECE
+                          Text(
+                            temp,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-
-                    const SizedBox(height: 5),
-
-                    // İKON (yukarıda url'yi oluşturdum şimdi onu kullanarak resmi göstermek kaldı))
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Image.network(
-                        iconUrl,
-                        fit: BoxFit.contain,
-                        // resim yüklenirken veya hata verirse ne göstersin?
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.cloud, color: Colors.white54),
-                      ),
-                    ),
-
-                    const SizedBox(height: 5),
-
-                    // DERECE
-                    Text(
-                      temp,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               );
             },

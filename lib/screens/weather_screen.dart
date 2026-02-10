@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Status bar rengi için şart
 import '../services/weather_service.dart';
 import '../models/weather_model.dart';
 import '../models/forecast_model.dart';
 import '../widgets/hourly_forecast_widget.dart';
 import '../widgets/daily_forecast_widget.dart';
+
+import 'dart:ui'; // ImageFilter için şart
 
 class WeatherScreen extends StatefulWidget {
   final String? cityInput;
@@ -17,6 +20,10 @@ class WeatherScreen extends StatefulWidget {
 class _WeatherScreenState extends State<WeatherScreen> {
   final WeatherService _weatherService = WeatherService();
 
+  // Scroll (Kaydırma) kontrolcüsü - Başlığın ne zaman görüneceğini bu yönetecek
+  late ScrollController _scrollController;
+  bool _showTitle = false; // Başlangıçta başlık gizli olmalı
+
   Future<WeatherModel>? _weatherFuture;
   Future<List<ForecastModel>>? _forecastFuture;
 
@@ -24,6 +31,28 @@ class _WeatherScreenState extends State<WeatherScreen> {
   void initState() {
     super.initState();
     _initWeather();
+
+    // Scroll dinleyicisini başlatıyorum
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      // Eğer 200 pikselden fazla aşağı kaydırıldıysa başlığı göster dedim çünkü en baştan gösteriyordu
+      if (_scrollController.offset > 200 && !_showTitle) {
+        setState(() {
+          _showTitle = true;
+        });
+      } else if (_scrollController.offset <= 200 && _showTitle) {
+        setState(() {
+          _showTitle = false;
+        });
+      }
+    });
+  }
+
+  // sayfa kapanırken scroll kontrolcüsünü temizlemeliyim
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _initWeather() {
@@ -38,19 +67,21 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Status bar'ı şeffaf yapıp yazıları beyaz yaptım böylece arka planla bütünleşiyor ve okunabilir oluyor
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        toolbarHeight: 0,
-      ),
       body: FutureBuilder<WeatherModel>(
         future: _weatherFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+            // Yüklenirken siyah ekran ve loading
+            return Container(
+              color: Colors.black,
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
             );
           }
           if (snapshot.hasError) {
@@ -71,221 +102,224 @@ class _WeatherScreenState extends State<WeatherScreen> {
             _forecastFuture = _weatherService.getForecast(weather.cityName);
           }
 
-          return Container(
-            // buradaki 'const' sildim çünkü fonksiyon sonucu sabit değil
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                // resimleri getiren fonksiyonu burda çağırıyorum
-                image: AssetImage(_getBackgroundImage(weather.iconCode)),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: RefreshIndicator(
-              onRefresh: () async {
-                setState(() {
-                  _initWeather();
-                });
-              },
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(top: 60, bottom: 40),
-                child: Column(
-                  children: [
-                    // --- 1. ŞEHİR ADI ---
-                    Text(
-                      weather.cityName,
-                      style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(blurRadius: 10, color: Colors.black45),
-                        ],
-                      ),
-                    ),
-
-                    // --- 2. SICAKLIK ---
-                    Text(
-                      "${weather.temperature.round()}°",
-                      style: const TextStyle(
-                        fontSize: 90,
-                        fontWeight: FontWeight.w200,
-                        color: Colors.white,
-                      ),
-                    ),
-
-                    // --- 3. DURUM ---
-                    Text(
-                      weather.description.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // eski Row yerine bu GridView geldi. !!
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: GridView.count(
-                        shrinkWrap: true, // scrollda sorun olmasın diye
-                        physics:
-                            const NeverScrollableScrollPhysics(), // sayfayla beraber kayması için
-                        crossAxisCount: 2, // yan yana 2 kutu
-                        crossAxisSpacing: 15, // yatay boşluk
-                        mainAxisSpacing: 15, // dikey boşluk
-                        childAspectRatio: 1.6, // kutuların şekli
-                        children: [
-                          // 1. nem
-                          _buildDetailCard(
-                            "Humidity",
-                            "%${weather.humidity}",
-                            Icons.water_drop,
-                            Colors.blueAccent,
-                          ),
-                          // 2. rüzgar
-                          _buildDetailCard(
-                            "Wind",
-                            "${weather.windSpeed} km/h",
-                            Icons.air,
-                            Colors.grey,
-                          ),
-                          // 3. hissedilen
-                          _buildDetailCard(
-                            "Feels Like",
-                            "${weather.feelsLike.round()}°",
-                            Icons.thermostat,
-                            Colors.orangeAccent,
-                          ),
-                          // 4. basınç
-                          _buildDetailCard(
-                            "Pressure",
-                            "${weather.pressure} hPa",
-                            Icons.speed,
-                            Colors.lightBlue,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // saatlik tahmin
-                    FutureBuilder<List<ForecastModel>>(
-                      future: _forecastFuture,
-                      builder: (context, forecastSnapshot) {
-                        if (forecastSnapshot.hasData &&
-                            forecastSnapshot.data!.isNotEmpty) {
-                          return HourlyForecastWidget(
-                            forecasts: forecastSnapshot.data!,
-                          );
-                        }
-                        return const SizedBox(height: 120);
-                      },
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // günlük tahmin
-                    FutureBuilder<List<ForecastModel>>(
-                      future: _forecastFuture,
-                      builder: (context, forecastSnapshot) {
-                        if (forecastSnapshot.hasData &&
-                            forecastSnapshot.data!.isNotEmpty) {
-                          return DailyForecastWidget(
-                            forecasts: forecastSnapshot.data!,
-                          );
-                        }
-                        return const SizedBox();
-                      },
-                    ),
-                  ],
+          // --- ANA YAPI ---
+          return Stack(
+            children: [
+              // 1. ARKA PLAN (Sabit duracak)
+              Positioned.fill(
+                child: Image.asset(
+                  _getBackgroundImage(weather.iconCode),
+                  fit: BoxFit.cover,
                 ),
               ),
-            ),
+
+              // 2. SCROLL EDİLEBİLİR İÇERİK (CustomScrollView)
+              // Küçülen başlık için bunu kullanmam şart yoksa bu küçülen başlığı elde edemedim
+              CustomScrollView(
+                controller: _scrollController, // Kontrolcüyü buraya bağladım
+                physics: const BouncingScrollPhysics(), // apple tipi bir efekt
+                slivers: [
+                  // --- KÜÇÜLEN BAŞLIK (SLIVER APP BAR) ---
+                  SliverAppBar(
+                    expandedHeight:
+                        350, // Açıkken kaplayacağı alan 350 güzel oldu
+                    pinned: true, // Yukarı yapışsın diye true dedim
+                    backgroundColor:
+                        Colors.transparent, // arka plan şeffaf olsun
+                    elevation: 0,
+                    stretch: true,
+
+                    // Başlık (Sadece küçülünce görünen kısım - AnimatedOpacity ekledim)
+                    title: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      opacity: _showTitle
+                          ? 1.0
+                          : 0.0, // _showTitle true ise görünür, false ise görünmez
+                      child: Text(
+                        weather.cityName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    centerTitle: true,
+
+                    flexibleSpace: FlexibleSpaceBar(
+                      collapseMode: CollapseMode.parallax,
+                      titlePadding: const EdgeInsets.only(bottom: 16),
+                      // Buradaki title'ı yukarıdaki AnimatedOpacity içine taşıdım ve burayı sildim
+
+                      // Arka plan büyütülünce görünecek olan içerik
+                      background: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 60), // Status bar boşluğu
+                          // Şehir Adı (Büyük)
+                          Text(
+                            weather.cityName,
+                            style: const TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(blurRadius: 5, color: Colors.black26),
+                              ],
+                            ),
+                          ),
+
+                          // Derece daha büyük ve ince
+                          Text(
+                            "${weather.temperature.round()}°",
+                            style: const TextStyle(
+                              fontSize: 96,
+                              fontWeight: FontWeight.w200, // Thin
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          // Durum (Partly Cloudy vb.)
+                          Text(
+                            weather.description, // API'den gelen açıklama
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+
+                          const SizedBox(height: 5),
+
+                          // H:.. L:.. (Yüksek / Düşük)
+                          // Şimdilik statik ama bunu halledince modelden çekeceğim
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "H:${(weather.temperature + 5).round()}° ",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                "L:${(weather.temperature - 5).round()}°",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // --- İÇERİK LİSTESİ (SliverToBoxAdapter) ---
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+
+                          // --- bentobox yerine summary box ekledim ---
+                          // Figma'daki o "Cloudy conditions..." yazan kutu burası
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                              child: Container(
+                                width: double.infinity, // ekranı kaplamalı
+                                padding: const EdgeInsets.all(15),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF1C1C1E,
+                                  ).withOpacity(0.4),
+                                  borderRadius: BorderRadius.circular(15),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.1),
+                                  ),
+                                ),
+                                child: Text(
+                                  "Today: ${weather.description}. The high will be ${(weather.temperature + 5).round()}°.",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // --- SAATLİK TAHMİN (Hourly) ---
+                          // Divider (Çizgi) ile ayırdım
+                          const Divider(color: Colors.white12),
+                          FutureBuilder<List<ForecastModel>>(
+                            future: _forecastFuture,
+                            builder: (context, forecastSnapshot) {
+                              if (forecastSnapshot.hasData &&
+                                  forecastSnapshot.data!.isNotEmpty) {
+                                return HourlyForecastWidget(
+                                  forecasts: forecastSnapshot.data!,
+                                );
+                              }
+                              return const SizedBox(height: 120);
+                            },
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // --- 5 GÜNLÜK TAHMİN (Daily) ---
+                          FutureBuilder<List<ForecastModel>>(
+                            future: _forecastFuture,
+                            builder: (context, forecastSnapshot) {
+                              if (forecastSnapshot.hasData &&
+                                  forecastSnapshot.data!.isNotEmpty) {
+                                return DailyForecastWidget(
+                                  forecasts: forecastSnapshot.data!,
+                                );
+                              }
+                              return const SizedBox();
+                            },
+                          ),
+
+                          // Bento Box figmada yoktu kaldırdım
+                          const SizedBox(height: 50), // En alta boşluk
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  // --- kartları çizen yardımcı fonksiyon---
-  Widget _buildDetailCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E).withOpacity(0.8), // koyu renk
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10), //çerçeve
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          //bsşlık veikon
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                title.toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          // değer
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // hava durumunun koduna göre assest dosyasına attığım resimlerin arka plan olmasını istiyorum bu fonksiyon bu işe yarıyor
-
+  // arka plan fonksiyonum aynen duruyor
   String _getBackgroundImage(String? iconCode) {
     if (iconCode == null) return 'assets/images/night_bg.png';
-
-    // 'n' harfi varsa gecedir (night), 'd' varsa gündüzdür (day).
     bool isNight = iconCode.endsWith('n');
-
-    if (isNight) {
-      return 'assets/images/night_bg.png'; // geceyse gece resmi
-    }
-
-    // gündüz ise hava durumuna göre resim seçiyoruz
-    if (iconCode.contains('01')) {
-      return 'assets/images/sunny.png'; // güneşli
-    } else if (iconCode.contains('02') ||
+    if (isNight) return 'assets/images/night_bg.png';
+    if (iconCode.contains('01')) return 'assets/images/sunny.png';
+    if (iconCode.contains('02') ||
         iconCode.contains('03') ||
         iconCode.contains('04') ||
-        iconCode.contains('50')) {
-      return 'assets/images/cloudy.png'; // bulutlu
-    } else if (iconCode.contains('09') ||
+        iconCode.contains('50'))
+      return 'assets/images/cloudy.png';
+    if (iconCode.contains('09') ||
         iconCode.contains('10') ||
-        iconCode.contains('11')) {
-      return 'assets/images/rainy.png'; // yağmurlu
-    } else if (iconCode.contains('13')) {
-      return 'assets/images/snowy.png'; // karlı
-    }
-
+        iconCode.contains('11'))
+      return 'assets/images/rainy.png';
+    if (iconCode.contains('13')) return 'assets/images/snowy.png';
     return 'assets/images/sunny.png';
   }
 }
-al
