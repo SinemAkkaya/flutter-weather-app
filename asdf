@@ -288,4 +288,3 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return 'assets/images/sunny.png';
   }
 }
-al
