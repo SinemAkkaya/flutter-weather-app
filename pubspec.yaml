@@ -15,12 +15,13 @@ dependencies:
   geolocator: ^13.0.1       # Konum için
   shared_preferences: ^2.3.3 # Veri saklamak için 
   flutter_dotenv: ^5.2.1    # .env dosyası güvenliği için
-  smooth_page_indicator: ^1.2.0 # Sayfa noktaları
+  smooth_page_indicator: ^2.0.1 # Sayfa noktaları
   intl: ^0.19.0             # Tarih formatı
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1 # Uygulama simgesi için ekledim
 
 flutter:
   uses-material-design: true
@@ -33,4 +34,9 @@ flutter:
     - assets/images/rainy.png
     - assets/images/snowy.png
     # Veya tek tek yazmak yerine klasörü komple # - assets/images/ şeklinde yazabilirmişim
-    
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/cloudy.png" # İkon olacak resmin yolunu belirttim
+  min_sdk_android: 21 # Minimum Android SDK sürümü (eklemek hataları engelleyebilirmiş)
