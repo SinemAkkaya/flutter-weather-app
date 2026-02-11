@@ -9,6 +9,10 @@ class WeatherModel {
   final double feelsLike;
   final int pressure;
 
+  //gerçek en yüksek ve en düşük sıcaklıkları ekledim
+  final double minTemp;
+  final double maxTemp;
+
   //Constructor: bu alanlar zorunludur (required), Swift'teki gibi boş (nil) olamazlar. (optional ın tersi )
   //gelen veriyi direkt değişkene koy demek için this. kullanıyorum
   WeatherModel({
@@ -21,6 +25,9 @@ class WeatherModel {
     // yeni eklediğim kısımlar da zorunlu
     required this.feelsLike,
     required this.pressure,
+    // artık bunlar da zorunlu
+    required this.minTemp,
+    required this.maxTemp,
   });
 
   // Factory Constructor: JSON verisini alıp Model nesnesine çeviren yapı ( swift'teki 'Decoder' burada manuel yapılıyor.)
@@ -43,6 +50,9 @@ class WeatherModel {
       feelsLike: (json['main']['feels_like'] as num)
           .toDouble(), // hissedilen de buçuklu olabilir
       pressure: json['main']['pressure'] as int, // basınç genelde tam sayıdır
+      //JSON'dan min ve max sıcaklıkları çekiyorum
+      minTemp: (json['main']['temp_min'] as num).toDouble(),
+      maxTemp: (json['main']['temp_max'] as num).toDouble(),
     );
   }
 

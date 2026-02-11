@@ -191,12 +191,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           const SizedBox(height: 5),
 
                           // H:.. L:.. (Yüksek / Düşük)
-                          // Şimdilik statik ama bunu halledince modelden çekeceğim
+                          // ARTIK MODELİ KULLANIYORUZ! (Eski +5/-5 silindi)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "H:${(weather.temperature + 5).round()}° ",
+                                // gerçek en yüksek sıcaklık
+                                "H:${weather.maxTemp.round()}° ",
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
@@ -204,7 +205,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                 ),
                               ),
                               Text(
-                                "L:${(weather.temperature - 5).round()}°",
+                                //gerçek en düşük sıcaklık
+                                "L:${weather.minTemp.round()}°",
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
@@ -218,7 +220,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     ),
                   ),
 
-                  // --- İÇERİK LİSTESİ (SliverToBoxAdapter) ---
+                  // --- SliverToBoxAdapter---
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -226,47 +228,20 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         children: [
                           const SizedBox(height: 20),
 
-                          // --- bentobox yerine summary box ekledim ---
-                          // Figma'daki o "Cloudy conditions..." yazan kutu burası
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(15),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                              child: Container(
-                                width: double.infinity, // ekranı kaplamalı
-                                padding: const EdgeInsets.all(15),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF1C1C1E,
-                                  ).withOpacity(0.4),
-                                  borderRadius: BorderRadius.circular(15),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.1),
-                                  ),
-                                ),
-                                child: Text(
-                                  "Today: ${weather.description}. The high will be ${(weather.temperature + 5).round()}°.",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
+                          // summary box ve divider kaldırdım tasarıma benzemesi için
 
                           // --- SAATLİK TAHMİN (Hourly) ---
-                          // Divider (Çizgi) ile ayırdım
-                          const Divider(color: Colors.white12),
                           FutureBuilder<List<ForecastModel>>(
                             future: _forecastFuture,
                             builder: (context, forecastSnapshot) {
                               if (forecastSnapshot.hasData &&
                                   forecastSnapshot.data!.isNotEmpty) {
+                                // açıklama artık burada parametre olarak geçiyor çünkü ayrı ayrı dursun istemiyorum
+                                //buradaki açıklamada da artık gerçek maxTemp'i kullanıyorum
                                 return HourlyForecastWidget(
                                   forecasts: forecastSnapshot.data!,
+                                  description:
+                                      "Today: ${weather.description}. The high will be ${weather.maxTemp.round()}°.",
                                 );
                               }
                               return const SizedBox(height: 120);

@@ -5,8 +5,13 @@ import 'dart:ui'; // ImageFilter için ekledim
 
 class HourlyForecastWidget extends StatelessWidget {
   final List<ForecastModel> forecasts;
+  final String description; // açıklama metnini buraya aldım
 
-  const HourlyForecastWidget({super.key, required this.forecasts});
+  const HourlyForecastWidget({
+    super.key,
+    required this.forecasts,
+    required this.description, //zorunlu oldu
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +33,26 @@ class HourlyForecastWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Başlık
+              // --Summary Box Artık Burada ---
+              Padding(
+                padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+                child: Text(
+                  description,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.4, // satır arası boşluk ile daha kolay okunuyor
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+
+              // --- ayırıcı çizgi ---
+              const Divider(color: Colors.white12, height: 1),
+
+              // Başlık (Artık çizginin altında)
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                 child: Row(
                   children: [
                     Icon(Icons.access_time, color: Colors.white54, size: 16),
@@ -48,7 +70,6 @@ class HourlyForecastWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              const Divider(color: Colors.white12),
 
               // yatay liste
               SizedBox(

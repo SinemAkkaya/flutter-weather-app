@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/forecast_model.dart';
 import 'dart:math';
-import 'dart:ui'; // ImageFilter için bunu ekledim
+import 'dart:ui'; // ImageFilter için
 
 class DailyForecastWidget extends StatelessWidget {
   final List<ForecastModel> forecasts;
@@ -26,7 +26,6 @@ class DailyForecastWidget extends StatelessWidget {
     double weekMin = 100;
     double weekMax = -100;
 
-    // önce döngüyle tüm günleri gezsin haftalık en fazlaları bulayım
     for (var dayKey in days) {
       var dayData = dailyGroups[dayKey]!;
       double dayMin = dayData.map((e) => e.temperature).reduce(min);
@@ -38,19 +37,20 @@ class DailyForecastWidget extends StatelessWidget {
 
     // --- buzlu cam ekledim ---
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(15),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), // buzlu cam yaptım
         child: Container(
-          margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.all(16),
+          width: double.infinity, //genişliği arttırdım
+          padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: const Color(
               0xFF1C1C1E,
             ).withOpacity(0.5), // Yarı şeffaf siyah
-            borderRadius: BorderRadius.circular(20),
-            // incebeyaz çerçeve
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+            ), // ince beyaz çerçeve
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,15 +65,19 @@ class DailyForecastWidget extends StatelessWidget {
                       color: Colors.white54,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ],
               ),
-              const Divider(color: Colors.white10, height: 20),
+
+              const Divider(color: Colors.white10, height: 1),
+              const SizedBox(height: 10),
 
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
                 itemCount: days.length,
                 itemBuilder: (context, index) {
                   String dayKey = days[index];
@@ -85,7 +89,7 @@ class DailyForecastWidget extends StatelessWidget {
 
                   ForecastModel representative = dayData[dayData.length ~/ 2];
                   final dayName = DateFormat(
-                    'E',
+                    'EEE',
                   ).format(DateTime.parse(representative.date));
                   final iconUrl =
                       "https://openweathermap.org/img/wn/${representative.icon}@2x.png";
@@ -94,101 +98,120 @@ class DailyForecastWidget extends StatelessWidget {
                   double totalRange = weekMax - weekMin;
                   if (totalRange == 0) totalRange = 1;
 
+                  // 1. Normalize değerler (0.0 ile 1.0 arası)
                   double normalizeMin = (dayMin - weekMin) / totalRange;
                   double normalizeWidth = (dayMax - dayMin) / totalRange;
 
+                  // 2. Bar çok küçük olmasın diye min genişlik veriyoruz
                   if (normalizeWidth < 0.1) normalizeWidth = 0.1;
 
+                  // 3. taşmayı engellemek için
+                  // Eğer başlangıç noktası + genişlik 1.0'ı geçerse (sağdan taşarsa) başlangıç noktasını sola çek demek
+                  if (normalizeMin + normalizeWidth > 1.0) {
+                    normalizeMin = 1.0 - normalizeWidth;
+                  }
+
+                  // 4. negatif kontrolü Ne olur ne olmaz hata almak istemiyorum)
+                  if (normalizeMin < 0.0) normalizeMin = 0.0;
+
                   return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                    ), //araları açtım
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // GÜN
+                        // 1. GÜN ADI
                         SizedBox(
-                          width: 50,
+                          width: 60,
                           child: Text(
                             dayName,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
 
-                        // İKON
+                        // 2. İKON
                         SizedBox(
-                          width: 30,
-                          height: 30,
+                          width: 40,
+                          height: 40,
                           child: Image.network(
                             iconUrl,
+                            fit: BoxFit.contain,
                             errorBuilder: (_, __, _) =>
-                                const Icon(Icons.cloud, color: Colors.white),
+                                const Icon(Icons.cloud, color: Colors.white54),
                           ),
                         ),
 
-                        // MIN DERECE
+                        // 3. MIN DERECE
                         SizedBox(
-                          width: 35,
+                          width: 40,
                           child: Text(
                             "${dayMin.round()}°",
                             style: const TextStyle(
                               color: Colors.white54,
-                              fontSize: 16,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
 
-                        // --- Bar ---
+                        // --- Bar) ---
                         Expanded(
-                          child: Container(
-                            height: 4,
-                            margin: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Colors
-                                  .white10, // arka plan (gri olan kısım değişti)
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Stack(
-                              children: [
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: FractionallySizedBox(
-                                    widthFactor: 1.0,
-                                    child: Container(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final double maxWidth = constraints.maxWidth;
+                                return Stack(
+                                  children: [
+                                    // Arka plan çizgisi
+                                    Container(
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white10,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    // Renkli Derece Çubuğu
+                                    Container(
+                                      height: 6,
+                                      // artık negatif margin hatası almayacağım
                                       margin: EdgeInsets.only(
-                                        left: 100 * normalizeMin,
+                                        left: maxWidth * normalizeMin,
                                         right:
-                                            100 *
+                                            maxWidth *
                                             (1.0 -
                                                 (normalizeMin +
                                                     normalizeWidth)),
                                       ),
-                                      height: 4,
                                       decoration: BoxDecoration(
-                                        // renk geçişleri (Mavi-Yeşil-Turuncu)
                                         gradient: LinearGradient(
                                           colors: _getGradientColors(dayMin),
                                         ),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ],
+                                  ],
+                                );
+                              },
                             ),
                           ),
                         ),
 
-                        // MAX DERECE
+                        // 4. MAX DERECE
                         SizedBox(
-                          width: 35,
+                          width: 40,
                           child: Text(
                             "${dayMax.round()}°",
                             textAlign: TextAlign.end,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -204,16 +227,18 @@ class DailyForecastWidget extends StatelessWidget {
     );
   }
 
-  // sıcaklığa göre renk değiştiren ekstra havalı fonksiyon
+  // --- renkler yenilendi ---
   List<Color> _getGradientColors(double temp) {
     if (temp < 0) {
-      return [Colors.blue, Colors.lightBlueAccent]; // çok soğuk
-    } else if (temp < 15) {
-      return [Colors.cyan, Colors.greenAccent]; // serin
-    } else if (temp < 25) {
-      return [Colors.green, Colors.orange]; // ılık
+      return [const Color(0xFF4064F6), const Color(0xFF63A4FF)];
+    } else if (temp < 10) {
+      return [const Color(0xFF53A9FF), const Color(0xFF8AE8FF)];
+    } else if (temp < 20) {
+      return [const Color(0xFF75D9F0), const Color(0xFF96E673)];
+    } else if (temp < 30) {
+      return [const Color(0xFF96E673), const Color(0xFFFFC63F)];
     } else {
-      return [Colors.orange, Colors.red]; // sıcak
+      return [const Color(0xFFFFC63F), const Color(0xFFFF5050)];
     }
   }
 }
