@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../services/storage_service.dart';
 import 'weather_screen.dart';
@@ -59,6 +60,8 @@ class _WeatherHomeState extends State<WeatherHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // BU SATIRI EKLEDİM: İçeriğin (PageView) alt barın arkasına geçmesine izin verir
+      extendBody: true,
       body: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -77,51 +80,56 @@ class _WeatherHomeState extends State<WeatherHome> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              height: 80, // Yüksekliği biraz artırdık, rahat dursun
-              decoration: const BoxDecoration(
-                color: Colors.black, // Zemin rengi (Apple'da siyahtır)
-                border: Border(
-                  top: BorderSide(
-                    color: Colors.white24, // O incecik gri çizgi
-                    width: 0.5,
-                  ),
-                ),
-              ),
-              child: SafeArea(
-                top: false, // üstten kısıtlamasın
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // harita ikonu
-                      const SizedBox(width: 40),
-
-                      // kaydırılan sayfa noktaları
-                      if (_cities.length > 1)
-                        SmoothPageIndicator(
-                          controller: _pageController,
-                          count: _cities.length,
-                          effect: const WormEffect(
-                            dotHeight: 8,
-                            dotWidth: 8,
-                            activeDotColor: Colors.white,
-                            dotColor: Colors.grey,
-                            spacing: 8,
-                          ),
-                        ),
-
-                      // liste Butonumm
-                      IconButton(
-                        icon: const Icon(
-                          Icons.list,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: _openListScreen,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    //şeffaf zemin uaptım
+                    color: Colors.black.withOpacity(0.1),
+                    border: const Border(
+                      top: BorderSide(
+                        color: Colors.white24, // O grey çizgi rengi
+                        width: 0.5,
                       ),
-                    ],
+                    ),
+                  ),
+                  child: SafeArea(
+                    top: false, // üstten kısıtlamasın
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // harita ikonu
+                          const SizedBox(width: 40),
+
+                          if (_cities.length > 1)
+                            SmoothPageIndicator(
+                              controller: _pageController,
+                              count: _cities.length,
+                              effect: const WormEffect(
+                                dotHeight: 8,
+                                dotWidth: 8,
+                                activeDotColor: Colors.white,
+                                dotColor: Colors.grey,
+                                spacing: 8,
+                              ),
+                            ),
+
+                          // liste Butonumm
+                          IconButton(
+                            icon: const Icon(
+                              Icons.list,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            onPressed: _openListScreen,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),

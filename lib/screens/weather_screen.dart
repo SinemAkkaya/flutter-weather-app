@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Status bar rengi için şart
+import 'package:flutter/services.dart';
 import '../services/weather_service.dart';
 import '../models/weather_model.dart';
 import '../models/forecast_model.dart';
 import '../widgets/hourly_forecast_widget.dart';
 import '../widgets/daily_forecast_widget.dart';
 
-import 'dart:ui'; // ImageFilter için şart
+import 'dart:ui';
 
 class WeatherScreen extends StatefulWidget {
   final String? cityInput;
@@ -20,9 +20,9 @@ class WeatherScreen extends StatefulWidget {
 class _WeatherScreenState extends State<WeatherScreen> {
   final WeatherService _weatherService = WeatherService();
 
-  // Scroll (Kaydırma) kontrolcüsü - Başlığın ne zaman görüneceğini bu yönetecek
+  // scroll kontrolcüsü
   late ScrollController _scrollController;
-  bool _showTitle = false; // Başlangıçta başlık gizli olmalı
+  bool _showTitle = false; // başlık başta gizli
 
   Future<WeatherModel>? _weatherFuture;
   Future<List<ForecastModel>>? _forecastFuture;
@@ -68,10 +68,20 @@ class _WeatherScreenState extends State<WeatherScreen> {
   @override
   Widget build(BuildContext context) {
     // Status bar'ı şeffaf yapıp yazıları beyaz yaptım böylece arka planla bütünleşiyor ve okunabilir oluyor
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent, // Alt bar şeffaf
+        systemNavigationBarDividerColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
 
     return Scaffold(
       backgroundColor: Colors.black,
+      extendBody: true, // içeriğin alt barın arkasına geçmesini sağlar
       body: FutureBuilder<WeatherModel>(
         future: _weatherFuture,
         builder: (context, snapshot) {
@@ -121,8 +131,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 slivers: [
                   // --- KÜÇÜLEN BAŞLIK (SLIVER APP BAR) ---
                   SliverAppBar(
-                    expandedHeight:
-                        350, // Açıkken kaplayacağı alan 350 güzel oldu
+                    expandedHeight: 350, // Açıkken kaplayacağı alan 350
                     pinned: true, // Yukarı yapışsın diye true dedim
                     backgroundColor:
                         Colors.transparent, // arka plan şeffaf olsun
@@ -191,7 +200,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           const SizedBox(height: 5),
 
                           // H:.. L:.. (Yüksek / Düşük)
-                          // ARTIK MODELİ KULLANIYORUZ! (Eski +5/-5 silindi)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [

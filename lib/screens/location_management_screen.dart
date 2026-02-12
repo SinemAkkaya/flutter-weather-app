@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/storage_service.dart';
 import '../services/weather_service.dart';
 import '../models/weather_model.dart';
@@ -17,8 +18,7 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
   final WeatherService _weatherService = WeatherService();
 
   List<String> _savedCities = [];
-  final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
+  // TextEditingController ve _isSearching sildim çünkü artık Apple tarzı SearchDelegate kullanıyoruz.
 
   @override
   void initState() {
@@ -38,10 +38,6 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
       await _weatherService.getWeather(city);
       if (city.isNotEmpty && !_savedCities.contains(city)) {
         await _storageService.addCity(city);
-        _searchController.clear();
-        setState(() {
-          _isSearching = false;
-        });
         await _loadCities();
       }
     } catch (e) {
@@ -66,132 +62,245 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // --- 1. AYAR: SİSTEM BARLARINI ŞEFFAF YAP ---
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent, // Alt bar şeffaf olsun
+      systemNavigationBarIconBrightness: Brightness.light, // İkonlar beyaz
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ));
+
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: "Şehir ara...",
-                  hintStyle: TextStyle(color: Colors.grey),
-                  border: InputBorder.none,
-                ),
-                autofocus: true,
-                onSubmitted: (value) => _addCity(value),
-              )
-            : const Text(
-                "Weather",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+      // AppBar'ı kaldırdık, yerine özel tasarım (Column) yapıyoruz.
+      body: SafeArea(
+        bottom: false, // Alt tarafı SafeArea'dan çıkardık ki şeffaflık işe yarasın
+        child: Column(
+          children: [
+            // --- 2. HEADER (Ortada Başlık, Sağda İkon) ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              // Stack ile üst üste bindirip ortalıyoruz
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Ortadaki Başlık
+                  const Text(
+                    "Weather",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  // Sağ üstteki üç nokta (En sağa yaslı)
+                  Positioned(
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () {
+                         // İlerde buraya ayarlar menüsü gelebilir
+                      },
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        child: const Icon(
+                          Icons.more_horiz,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Başlık çok uzun olursa çakışmasın diye boş yükseklik
+                  const Row(children: [SizedBox(height: 32)]),
+                ],
+              ),
+            ),
+
+            // --- 3. SABİT ARAMA ÇUBUĞU (SEARCH BAR) ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: GestureDetector(
+                onTap: () async {
+                  // Kutuya tıklayınca arama sayfası (Delegate) açılsın
+                  final result = await showSearch(
+                    context: context,
+                    delegate: CitySearchDelegate(),
+                  );
+                  // Eğer bir şehir seçildiyse ekle
+                  if (result != null && result.isNotEmpty) {
+                    _addCity(result);
+                  }
+                },
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1C1E), // Koyu gri (Figma tonu)
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    children: [
+                      SizedBox(width: 10),
+                      Icon(Icons.search, color: Colors.grey),
+                      SizedBox(width: 10),
+                      Text(
+                        "Search for a city or airport",
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isSearching ? Icons.cancel : Icons.search_rounded,
-              color: Colors.white,
             ),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) {
-                  _isSearching = false;
-                  _searchController.clear();
-                } else {
-                  _isSearching = true;
-                }
-              });
-            },
-          ),
-        ],
-      ),
-      body: ListView(
-        children: [
-          // --- 1. MY LOCATION KARTI ---
-          FutureBuilder<WeatherModel>(
-            future: _weatherService.getWeatherByLocation(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(color: Colors.white),
+
+            // --- LİSTE KISMI ---
+            Expanded(
+              child: ListView(
+                // Alt bara yapışmasın diye padding verdim
+                padding: const EdgeInsets.only(left: 20, right: 20, bottom: 40),
+                children: [
+                  // --- MY LOCATION KARTI ---
+                  FutureBuilder<WeatherModel>(
+                    future: _weatherService.getWeatherByLocation(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(color: Colors.white),
+                          ),
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return Container(
+                          margin: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            "Konum bulunamadı veya izin verilmedi.",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        );
+                      }
+
+                      final weather = snapshot.data!;
+
+                      // !! yeni karttt
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 15),
+                        child: LocationCard(
+                          weather: weather, //tüm veri gitsin diye
+                          isCurrentLocation: true, // başlık "My Location" olsun
+                          onTap: () {
+                            Navigator.pop(context, "GPS_LOCATION");
+                          },
+                        ),
+                      );
+                    },
                   ),
-                );
-              }
 
-              if (snapshot.hasError) {
-                return Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    "Konum bulunamadı veya izin verilmedi.",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                );
-              }
+                  // --- KAYITLI ŞEHİRLER LİSTESİ ---
+                  if (_savedCities.isNotEmpty)
+                    ..._savedCities.map((cityName) {
+                      return FutureBuilder<WeatherModel>(
+                        future: _weatherService.getWeather(cityName),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) return const SizedBox();
+                          final weather = snapshot.data!;
 
-              final weather = snapshot.data!;
-
-              // !! yeni karttt
-              return LocationCard(
-                weather: weather, //tüm veri gitsin diye
-                isCurrentLocation: true, // başlık "My Location" olsun
-                onTap: () {
-                  Navigator.pop(context, "GPS_LOCATION");
-                },
-              );
-            },
-          ),
-
-          // --- 2. KAYITLI ŞEHİRLER LİSTESİ ---
-          if (_savedCities.isEmpty)
-            const SizedBox()
-          else
-            ..._savedCities.map((cityName) {
-              return FutureBuilder<WeatherModel>(
-                future: _weatherService.getWeather(cityName),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const SizedBox();
-                  final weather = snapshot.data!;
-
-                  // dismissible
-
-                  return Dismissible(
-                    key: Key(cityName),
-                    direction: DismissDirection.endToStart, // kayfırma yönü
-                    onDismissed: (_) => _removeCity(cityName), // silme işlemi
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
-                      color: Colors.red, // Arkadaki kırmızı renk
-                      child: const Icon(Icons.delete, color: Colors.white),
-                    ),
-                    child: LocationCard(
-                      weather: weather, // tüm veri gitsin diye
-                      isCurrentLocation: false, // başlık şehir adı olsun
-                      onTap: () {
-                        Navigator.pop(context, cityName);
-                      },
-                    ),
-                  );
-                },
-              );
-            }).toList(),
-        ],
+                          // dismissible
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 15),
+                            child: Dismissible(
+                              key: Key(cityName),
+                              direction: DismissDirection.endToStart, // kayfırma yönü
+                              onDismissed: (_) => _removeCity(cityName), // silme işlemi
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                decoration: BoxDecoration(
+                                  color: Colors.red, // Arkadaki kırmızı renk
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(Icons.delete, color: Colors.white),
+                              ),
+                              child: LocationCard(
+                                weather: weather, // tüm veri gitsin diye
+                                isCurrentLocation: false, // başlık şehir adı olsun
+                                onTap: () {
+                                  Navigator.pop(context, cityName);
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    }).toList(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+// --- ARAMA İŞLEMİ İÇİN YARDIMCI SINIF (SearchDelegate) ---
+class CitySearchDelegate extends SearchDelegate<String> {
+  @override
+  ThemeData appBarTheme(BuildContext context) {
+    return ThemeData.dark().copyWith(
+      scaffoldBackgroundColor: Colors.black,
+      appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF1C1C1E)),
+      inputDecorationTheme: const InputDecorationTheme(
+        border: InputBorder.none,
+        hintStyle: TextStyle(color: Colors.grey),
+      ),
+    );
+  }
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.clear, color: Colors.white),
+        onPressed: () {
+          query = '';
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back, color: Colors.white),
+      onPressed: () {
+        close(context, '');
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    // Enter'a basınca (veya klavyeden arama ikonuna) yazılan şehri geri döndür
+    Future.delayed(Duration.zero, () {
+      close(context, query);
+    });
+    return Container();
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    return Container(color: Colors.black);
   }
 }
