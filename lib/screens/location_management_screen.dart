@@ -18,7 +18,7 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
   final WeatherService _weatherService = WeatherService();
 
   List<String> _savedCities = [];
-  // TextEditingController ve _isSearching sildim çünkü artık Apple tarzı SearchDelegate kullanıyoruz.
+  // TextEditingController ve _isSearching sildim çünkü artık Apple tarzı SearchDelegate kullanıyorum
 
   @override
   void initState() {
@@ -63,27 +63,53 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
   @override
   Widget build(BuildContext context) {
     // --- 1. AYAR: SİSTEM BARLARINI ŞEFFAF YAP ---
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      systemNavigationBarColor: Colors.transparent, // Alt bar şeffaf olsun
-      systemNavigationBarIconBrightness: Brightness.light, // İkonlar beyaz
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent, // Alt bar şeffaf olsun
+        systemNavigationBarIconBrightness: Brightness.light, // İkonlar beyaz
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+    );
 
     return Scaffold(
       backgroundColor: Colors.black,
-      // AppBar'ı kaldırdık, yerine özel tasarım (Column) yapıyoruz.
+      // AppBar'ı kaldırdım yerine coulmn geldi
       body: SafeArea(
-        bottom: false, // Alt tarafı SafeArea'dan çıkardık ki şeffaflık işe yarasın
+        bottom:
+            false, // Alt tarafı SafeArea'dan çıkardım ki şeffaflık işe yarasın
         child: Column(
           children: [
             // --- 2. HEADER (Ortada Başlık, Sağda İkon) ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              // Stack ile üst üste bindirip ortalıyoruz
+              // Stack ile üst üste bindirip ortalıyorum
               child: Stack(
                 alignment: Alignment.center,
                 children: [
+                  // --- YENİ EKLENEN GERİ BUTONU BURDA---
+                  Positioned(
+                    left: 0,
+                    child: GestureDetector(
+                      onTap: () {
+                        // DERS NOTU: Navigator.pop(context) fonksiyonu, mevcut sayfayı
+                        // navigasyon yığınından (stack) atar ve bir önceki sayfaya geri döner.
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        color:
+                            Colors.transparent, // Tıklama alanını büyütmek için
+                        padding: const EdgeInsets.all(8.0),
+                        child: const Icon(
+                          Icons
+                              .arrow_back_ios, //iosdakine benzeyen geri ok butonu
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+
                   // Ortadaki Başlık
                   const Text(
                     "Weather",
@@ -93,12 +119,13 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   // Sağ üstteki üç nokta (En sağa yaslı)
                   Positioned(
                     right: 0,
                     child: GestureDetector(
                       onTap: () {
-                         // İlerde buraya ayarlar menüsü gelebilir
+                        //ileride buraya ayarlar menüsü gelebilir
                       },
                       child: Container(
                         width: 30,
@@ -120,7 +147,6 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                 ],
               ),
             ),
-
             // --- 3. SABİT ARAMA ÇUBUĞU (SEARCH BAR) ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -171,7 +197,9 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(color: Colors.white),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
                           ),
                         );
                       }
@@ -221,8 +249,10 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                             padding: const EdgeInsets.only(bottom: 15),
                             child: Dismissible(
                               key: Key(cityName),
-                              direction: DismissDirection.endToStart, // kayfırma yönü
-                              onDismissed: (_) => _removeCity(cityName), // silme işlemi
+                              direction:
+                                  DismissDirection.endToStart, // kaydırma yönü
+                              onDismissed: (_) =>
+                                  _removeCity(cityName), // silme işlemi
                               background: Container(
                                 alignment: Alignment.centerRight,
                                 padding: const EdgeInsets.only(right: 20),
@@ -230,11 +260,15 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                                   color: Colors.red, // Arkadaki kırmızı renk
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                child: const Icon(Icons.delete, color: Colors.white),
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
                               ),
                               child: LocationCard(
                                 weather: weather, // tüm veri gitsin diye
-                                isCurrentLocation: false, // başlık şehir adı olsun
+                                isCurrentLocation:
+                                    false, // başlık şehir adı olsun
                                 onTap: () {
                                   Navigator.pop(context, cityName);
                                 },
