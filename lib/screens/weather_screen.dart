@@ -273,7 +273,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           ),
 
                           // Bento Box figmada yoktu kaldırdım
-                          const SizedBox(height: 50), // En alta boşluk
+                          // DERS NOTU: 5 günlük tahmin listesinin en altındaki günün (Salı),
+                          // weather_home'daki blurlu alt navigasyon barının altında kalmaması için
+                          // buradaki boşluğu 120 piksele çıkardım.
+                          const SizedBox(height: 120), // En alta boşluk
                         ],
                       ),
                     ),
