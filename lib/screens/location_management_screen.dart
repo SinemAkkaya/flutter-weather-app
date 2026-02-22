@@ -82,7 +82,7 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
             false, // Alt tarafı SafeArea'dan çıkardım ki şeffaflık işe yarasın
         child: Column(
           children: [
-            // --- 2. HEADER (Ortada Başlık, Sağda İkon) ---
+            // --- 2. HEADER (Ortada Başlık, Geri Butonu) ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               // Stack ile üst üste bindirip ortalıyorum
@@ -122,28 +122,6 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                     ),
                   ),
 
-                  // Sağ üstteki üç nokta (En sağa yaslı)
-                  Positioned(
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: () {
-                        //ileride buraya ayarlar menüsü gelebilir
-                      },
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: const Icon(
-                          Icons.more_horiz,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
                   // Başlık çok uzun olursa çakışmasın diye boş yükseklik
                   const Row(children: [SizedBox(height: 32)]),
                 ],

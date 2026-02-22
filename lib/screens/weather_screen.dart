@@ -22,7 +22,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   // scroll kontrolcüsü
   late ScrollController _scrollController;
-  bool _showTitle = false; // başlık başta gizli
+
+  // DERS NOTU: Küçük başlığın görünürlüğünü sadece boolean ile değil, opacity değeri ile kontrol ediyorum.
+  double _smallTitleOpacity = 0.0;
+
+  // DERS NOTU: Büyük başlığın kaydırdıkça küçülmesi ve şeffaflaşması için iki değişken tanımladım.
+  double _largeTitleOpacity = 1.0;
+  double _largeTitleScale = 1.0;
 
   Future<WeatherModel>? _weatherFuture;
   Future<List<ForecastModel>>? _forecastFuture;
@@ -35,16 +41,31 @@ class _WeatherScreenState extends State<WeatherScreen> {
     // Scroll dinleyicisini başlatıyorum
     _scrollController = ScrollController();
     _scrollController.addListener(() {
-      // Eğer 200 pikselden fazla aşağı kaydırıldıysa başlığı göster dedim çünkü en baştan gösteriyordu
-      if (_scrollController.offset > 200 && !_showTitle) {
-        setState(() {
-          _showTitle = true;
-        });
-      } else if (_scrollController.offset <= 200 && _showTitle) {
-        setState(() {
-          _showTitle = false;
-        });
-      }
+      double offset = _scrollController.offset;
+
+      setState(() {
+        // DERS NOTU: 0 ile 120 piksel arasında aşağı kaydırırken büyük yazı yavaşça küçülür ve silinir.
+        if (offset <= 0) {
+          _largeTitleOpacity = 1.0;
+          _largeTitleScale = 1.0;
+          _smallTitleOpacity = 0.0;
+        } else if (offset < 120) {
+          _largeTitleOpacity = 1.0 - (offset / 120); // Şeffaflık azalır
+          _largeTitleScale = 1.0 - (offset / 500); // Hafifçe küçülme efekti
+          _smallTitleOpacity = 0.0; // Küçük başlık hala gizli
+        } else {
+          // 120 pikseli geçtiğinde (Büyük yazı tamamen kaybolduğunda)
+          _largeTitleOpacity = 0.0;
+          _largeTitleScale = 0.75;
+
+          // DERS NOTU: Büyük yazı tamamen kaybolduktan SONRA, küçük başlık yavaşça (120 ile 150 piksel arasında) görünür hale gelir.
+          if (offset >= 120 && offset <= 150) {
+            _smallTitleOpacity = (offset - 120) / 30; // 0'dan 1'e doğru artar
+          } else if (offset > 150) {
+            _smallTitleOpacity = 1.0; // Tamamen görünür
+          }
+        }
+      });
     });
   }
 
@@ -138,12 +159,9 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     elevation: 0,
                     stretch: true,
 
-                    // Başlık (Sadece küçülünce görünen kısım - AnimatedOpacity ekledim)
-                    title: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 300),
-                      opacity: _showTitle
-                          ? 1.0
-                          : 0.0, // _showTitle true ise görünür, false ise görünmez
+                    // DERS NOTU: Küçük Başlık (Opaklığı scroll değerine göre dinamik olarak değişiyor)
+                    title: Opacity(
+                      opacity: _smallTitleOpacity,
                       child: Text(
                         weather.cityName,
                         style: const TextStyle(
@@ -157,23 +175,31 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     flexibleSpace: FlexibleSpaceBar(
                       collapseMode: CollapseMode.parallax,
                       titlePadding: const EdgeInsets.only(bottom: 16),
-                      // Buradaki title'ı yukarıdaki AnimatedOpacity içine taşıdım ve burayı sildim
 
                       // Arka plan büyütülünce görünecek olan içerik
                       background: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const SizedBox(height: 60), // Status bar boşluğu
-                          // Şehir Adı (Büyük)
-                          Text(
-                            weather.cityName,
-                            style: const TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(blurRadius: 5, color: Colors.black26),
-                              ],
+                          // DERS NOTU: Büyük Şehir Adı (Transform.scale ve Opacity ile küçülerek kaybolma efekti verdim)
+                          Transform.scale(
+                            scale: _largeTitleScale,
+                            child: Opacity(
+                              opacity: _largeTitleOpacity,
+                              child: Text(
+                                weather.cityName,
+                                style: const TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 5,
+                                      color: Colors.black26,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
 
