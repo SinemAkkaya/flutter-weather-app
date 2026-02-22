@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../services/storage_service.dart';
 import 'weather_screen.dart';
-import 'location_management_screen.dart';
+// NOT: Artık Named Route kullandığımız için buraya 'location_management_screen.dart' import etmemize gerek kalmadı!
 
 class WeatherHome extends StatefulWidget {
   const WeatherHome({super.key});
@@ -36,10 +36,8 @@ class _WeatherHomeState extends State<WeatherHome> {
   }
 
   void _openListScreen() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LocationManagementScreen()),
-    );
+    // NOT: Sayfa geçişini Named Route kullanarak çok daha temiz ve okunabilir hale getirdim.
+    final result = await Navigator.pushNamed(context, '/search');
 
     // listeden dönünce mutlaka verileri güncelle
     await _loadCities();
@@ -48,7 +46,8 @@ class _WeatherHomeState extends State<WeatherHome> {
       if (result == "GPS_LOCATION") {
         _pageController.jumpToPage(0);
       } else {
-        final index = _cities.indexOf(result);
+        // dynamic olarak gelen result'ı String'e cast ettim ki listede bulabilsin
+        final index = _cities.indexOf(result as String);
         if (index != -1) {
           _pageController.jumpToPage(index);
         }
