@@ -69,7 +69,6 @@ class WeatherService {
     }
   }
 
-  // --- yeni fonksiyonum  ---
   Future<List<ForecastModel>> getForecast(String cityName) async {
     // artık burası düzgün çalışıyor '/forecast' ekleyince sorun olmuyor
     final url = Uri.parse(
@@ -82,10 +81,56 @@ class WeatherService {
       final Map<String, dynamic> data = jsonDecode(response.body);
       final List<dynamic> listData = data['list'];
 
-      //filtreyi kaldırdım çünkü 3 saatlik tahminleri göstermek istiyorum
       return listData.map((item) => ForecastModel.fromJson(item)).toList();
     } else {
       throw Exception('Error: ${response.statusCode}');
+    }
+  }
+
+  // --- YENİ EKLENEN: ŞEHİR ARAMA (AUTOCOMPLETE) FONKSİYONUM ---
+  // NOT: OpenWeather API'si autocomplete aramalarında nüfusa göre sıralama yapmadığı için
+  // alakasız küçük köyleri getiriyordu. bu durumu iyileştirmek ve büyük şehirleri
+  // en üstte göstermek için arama motoru olarak ücretsiz Open-Meteo Geocoding API'sini kullanıyorum.
+  // Hava durumu verilerini çekmeye yine OpenWeather'dan devam ediyorum. (Hibrit API Kullanımı)
+  Future<List<String>> searchCities(String query) async {
+    try {
+      // count=10 ile en popüler 10 eşleşmeyi getiriyorum. language=tr ile Türkçe karakter uyumunu sağladım.
+      final url = Uri.parse(
+        'https://geocoding-api.open-meteo.com/v1/search?name=$query&count=10&language=tr&format=json',
+      );
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+
+        // Eğer sonuç bulunamazsa API 'results' dizisini hiç göndermiyor, bu çökmesin diye kontrol ekledim
+        if (!data.containsKey('results')) {
+          return [];
+        }
+
+        final List<dynamic> results = data['results'];
+
+        // NOT: Gelen listeden şehir adı ve ülke kodunu birleştirip (Örn: Ankara, TR)
+        // toSet() ile aynı şehirden iki tane gelmesini engelliyorum.
+        // OpenWeather kendi içinde hava durumu ararken bu formatı (City, CountryCode) destekliyor.
+        return results
+            .map((item) {
+              final String cityName = item['name'];
+              final String country = item['country_code'] ?? '';
+
+              if (country.isNotEmpty) {
+                return "$cityName, $country";
+              }
+              return cityName;
+            })
+            .toSet()
+            .toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
     }
   }
 }

@@ -5,6 +5,8 @@ import '../services/weather_service.dart';
 import '../models/weather_model.dart';
 import '../widgets/location_card.dart';
 
+import 'dart:async'; // Debouncing işlemi için ekledim
+
 class LocationManagementScreen extends StatefulWidget {
   const LocationManagementScreen({super.key});
 
@@ -92,7 +94,7 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                     left: 0,
                     child: GestureDetector(
                       onTap: () {
-                        // DERS NOTU: Navigator.pop(context) fonksiyonu, mevcut sayfayı
+                        //NOT: Navigator.pop(context) fonksiyonu, mevcut sayfayı
                         // navigasyon yığınından (stack) atar ve bir önceki sayfaya geri döner.
                         Navigator.pop(context);
                       },
@@ -290,6 +292,16 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
 
 // --- ARAMA İŞLEMİ İÇİN YARDIMCI SINIF (SearchDelegate) ---
 class CitySearchDelegate extends SearchDelegate<String> {
+  //NOT: Hocamın tavsiyesi üzerine her harfte API'yi yormamak için Debounce (Zamanlayıcı) mantığı kurdum.
+  Timer? _debounce;
+
+  //NOT: Gerçek zamanlı API sonuçlarını ekranda göstermek için ValueNotifier kullanıyorum.
+  final ValueNotifier<List<String>> _searchResults =
+      ValueNotifier<List<String>>([]);
+  final ValueNotifier<bool> _isLoading = ValueNotifier<bool>(false);
+  final WeatherService _weatherService = WeatherService(); // Gerçek API servisi
+  String _lastQuery = ''; // Gereksiz istekleri önlemek için
+
   @override
   ThemeData appBarTheme(BuildContext context) {
     return ThemeData.dark().copyWith(
@@ -309,6 +321,7 @@ class CitySearchDelegate extends SearchDelegate<String> {
         icon: const Icon(Icons.clear, color: Colors.white),
         onPressed: () {
           query = '';
+          _searchResults.value = []; // Çarpıya basınca listeyi temizle
         },
       ),
     ];
@@ -326,15 +339,107 @@ class CitySearchDelegate extends SearchDelegate<String> {
 
   @override
   Widget buildResults(BuildContext context) {
-    // Enter'a basınca (veya klavyeden arama ikonuna) yazılan şehri geri döndür
+    // Enter'a basınca yazılan şehri geri döndür
     Future.delayed(Duration.zero, () {
       close(context, query);
     });
-    return Container();
+    return Container(color: Colors.black);
   }
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    return Container(color: Colors.black);
+    // Kullanıcı bir şey yazmadıysa boş siyah ekran döndür
+    if (query.isEmpty) {
+      return Container(color: Colors.black);
+    }
+
+    //NOT: Kullanıcı klavyede durakladığında 1 saniye bekleyip API'ye istek atıyorum (Debouncing)
+    if (query != _lastQuery) {
+      _lastQuery = query;
+
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+      _isLoading.value = true;
+
+      _debounce = Timer(const Duration(seconds: 1), () async {
+        try {
+          //NOT: Burada sahte veri yerine direkt kendi WeatherService içimdeki fonksiyonu çağırıyorum
+          // Eğer _weatherService.searchCities fonksiyonunu henüz yazmadıysan onu da yazmamız gerekecek.
+          final List<String> fetchedCities = await _weatherService.searchCities(
+            query,
+          );
+
+          _searchResults.value = fetchedCities.isEmpty
+              ? ["Bulunamadı"]
+              : fetchedCities;
+        } catch (e) {
+          _searchResults.value = ["Hata"];
+        } finally {
+          _isLoading.value = false;
+        }
+      });
+    }
+
+    // Arama Sonuçlarını Gösterme Kısmı
+    return Container(
+      color: Colors.black,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _isLoading,
+        builder: (context, isLoading, _) {
+          if (isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
+          }
+
+          return ValueListenableBuilder<List<String>>(
+            valueListenable: _searchResults,
+            builder: (context, results, _) {
+              if (results.isEmpty) return Container();
+
+              return ListView.builder(
+                itemCount: results.length,
+                itemBuilder: (context, index) {
+                  final city = results[index];
+
+                  if (city == "Bulunamadı") {
+                    return const ListTile(
+                      title: Text(
+                        "Şehir bulunamadı.",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    );
+                  }
+
+                  if (city == "Hata") {
+                    return const ListTile(
+                      title: Text(
+                        "Veri çekilemedi. Lütfen tekrar deneyin.",
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    );
+                  }
+
+                  return ListTile(
+                    leading: const Icon(
+                      Icons.location_on,
+                      color: Colors.white70,
+                    ),
+                    title: Text(
+                      city,
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                    onTap: () {
+                      // Listeden seçilen şehri kapatıp geri döndür
+                      close(context, city);
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
